@@ -28,12 +28,13 @@ func (e *EventData) Aborted() bool {
 	return e.aborted
 }
 
-func (e *EventData) init(s string, args []interface{}) {
-	e.name = s
-	e.Data = args
+func (e *EventData) init(name string, data []interface{}) {
+	e.name = name
+	e.Data = data
 }
 
 func (e *EventData) reset() {
 	e.name = ""
 	e.Data = make([]interface{}, 0)
+	e.aborted = false
 }

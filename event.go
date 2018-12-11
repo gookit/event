@@ -1,65 +1,88 @@
 package event
 
-// EventFace
-type EventFace interface {
-	Params()
+// Event interface
+type Event interface {
 	Name() string
-	Stop(bool)
+	Data() []interface{}
+	Abort()
+	Aborted() bool
 }
 
-// Event
-type Event struct {
-	name    string
-	stopped bool
+// BasicEvent a basic event struct define.
+type BasicEvent struct {
+	// event name
+	name string
+	// user data.
+	data []interface{}
+	// target
 	target  interface{}
-	params  interface{}
+	aborted bool
 }
 
-// New event instance
-func New(name string) *Event {
-	return &Event{name: name}
+// NewBasic new an basic event instance
+func NewBasic(name string) *BasicEvent {
+	return &BasicEvent{name: name}
 }
 
-// Init
-func (e *Event) Init(target, params interface{}) *Event {
+// Abort abort event exec
+func (e *BasicEvent) Abort() {
+	e.aborted = true
+}
+
+// Aborted check.
+func (e *BasicEvent) Aborted() bool {
+	return e.aborted
+}
+
+// Fill event data
+func (e *BasicEvent) Fill(target interface{}, data ...interface{}) *BasicEvent {
+	e.data = data
+	e.target = target
 	return e
 }
 
-// Clone current event object
-func (e *Event) Clone() *Event {
-	ne := *e
-	ne.name = ""
-	ne.target = nil
-	ne.params = nil
-	ne.stopped = false
-	return &ne
+func (e *BasicEvent) reset() {
+	e.name = ""
+	e.data = make([]interface{}, 0)
+	e.target = nil
+	e.aborted = false
 }
 
-func (e *Event) Params() interface{} {
-	return e.params
+// Get get data by index
+func (e *BasicEvent) Get(index int) interface{} {
+	if len(e.data) > index {
+		return e.data[index]
+	}
+
+	return nil
 }
 
-func (e *Event) SetParams(params interface{}) {
-	e.params = params
-}
-
-func (e *Event) Name() string {
+// Name get name
+func (e *BasicEvent) Name() string {
 	return e.name
 }
 
-func (e *Event) SetName(name string) {
+// Data get all data
+func (e *BasicEvent) Data() []interface{} {
+	return e.data
+}
+
+// SetData set data to the event
+func (e *BasicEvent) SetData(data ...interface{}) {
+	e.data = data
+}
+
+// SetName set name
+func (e *BasicEvent) SetName(name string) {
 	e.name = name
 }
 
-func (e *Event) SetTarget(target interface{}) {
+// SetTarget set target
+func (e *BasicEvent) SetTarget(target interface{}) {
 	e.target = target
 }
 
-func (e *Event) Target() interface{} {
+// Target get target
+func (e *BasicEvent) Target() interface{} {
 	return e.target
-}
-
-// Stop
-func (e *Event) Stop(stopped bool) {
-	e.stopped = stopped
 }

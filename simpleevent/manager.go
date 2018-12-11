@@ -5,10 +5,11 @@ import (
 	"sync"
 )
 
-const wildcard = "*"
+// Wildcard event name
+const Wildcard = "*"
 
-// EventHandler func define
-type EventHandler func(e *EventData) error
+// HandlerFunc event handler func define
+type HandlerFunc func(e *EventData) error
 
 /*************************************************************
  * Event Manager
@@ -16,16 +17,17 @@ type EventHandler func(e *EventData) error
 
 // EventManager struct
 type EventManager struct {
-	names  map[string]int
-	events map[string][]EventHandler
-	pool   sync.Pool
+	pool  sync.Pool
+	names map[string]int
+	// storage event handlers
+	handlers map[string][]HandlerFunc
 }
 
 // NewEventManager create EventManager instance
 func NewEventManager() *EventManager {
 	em := &EventManager{
-		names:  make(map[string]int),
-		events: make(map[string][]EventHandler),
+		names:    make(map[string]int),
+		handlers: make(map[string][]HandlerFunc),
 	}
 
 	// set pool creator
@@ -37,20 +39,22 @@ func NewEventManager() *EventManager {
 }
 
 // On register a event handler
-func (em *EventManager) On(name string, handler EventHandler) {
+func (em *EventManager) On(name string, handler HandlerFunc) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		panic("event name cannot be empty")
 	}
 
-	if ls, ok := em.events[name]; ok {
-		em.events[name] = append(ls, handler)
+	if ls, ok := em.handlers[name]; ok {
+		em.names[name]++
+		em.handlers[name] = append(ls, handler)
 	} else { // first add.
-		em.events[name] = []EventHandler{handler}
+		em.names[name] = 1
+		em.handlers[name] = []HandlerFunc{handler}
 	}
 }
 
-// MustFire fire event by name
+// MustFire fire handlers by name. will panic on error
 func (em *EventManager) MustFire(name string, args ...interface{}) {
 	err := em.Fire(name, args...)
 	if err != nil {
@@ -58,9 +62,9 @@ func (em *EventManager) MustFire(name string, args ...interface{}) {
 	}
 }
 
-// Fire event by name
+// Fire handlers by name
 func (em *EventManager) Fire(name string, args ...interface{}) (err error) {
-	handlers, ok := em.events[name]
+	handlers, ok := em.handlers[name]
 	if !ok {
 		return
 	}
@@ -68,11 +72,15 @@ func (em *EventManager) Fire(name string, args ...interface{}) (err error) {
 	e := em.pool.Get().(*EventData)
 	e.init(name, args)
 
-	defer func() {
-		e.reset()
-		em.pool.Put(e)
-	}()
+	// call event handlers
+	err = em.doFire(e, handlers)
 
+	e.reset()
+	em.pool.Put(e)
+	return
+}
+
+func (em *EventManager) doFire(e *EventData, handlers []HandlerFunc) (err error) {
 	err = em.callHandlers(e, handlers)
 	if err != nil || e.Aborted() {
 		return
@@ -81,15 +89,15 @@ func (em *EventManager) Fire(name string, args ...interface{}) (err error) {
 	// group listen "app.*"
 	// groupName :=
 
-	// wildcard event handler
-	if em.HasEvent(wildcard) {
-		err = em.callHandlers(e, em.events[wildcard])
+	// Wildcard event handler
+	if em.HasEvent(Wildcard) {
+		err = em.callHandlers(e, em.handlers[Wildcard])
 	}
 
 	return
 }
 
-func (em *EventManager) callHandlers(e *EventData, handlers []EventHandler) (err error) {
+func (em *EventManager) callHandlers(e *EventData, handlers []HandlerFunc) (err error) {
 	for _, handler := range handlers {
 		err = handler(e)
 		if err != nil || e.Aborted() {
@@ -105,33 +113,34 @@ func (em *EventManager) HasEvent(name string) bool {
 	return ok
 }
 
-// DelEventsByName delete events by name
-func (em *EventManager) DelEventsByName(name string) bool {
+// GetEventHandlers get handlers and handlers by name
+func (em *EventManager) GetEventHandlers(name string) (es []HandlerFunc) {
+	es, _ = em.handlers[name]
+	return
+}
+
+// EventHandlers get all event handlers
+func (em *EventManager) EventHandlers() map[string][]HandlerFunc {
+	return em.handlers
+}
+
+// EventNames get all event names
+func (em *EventManager) EventNames() map[string]int {
+	return em.names
+}
+
+// ClearHandlers clear handlers by name
+func (em *EventManager) ClearHandlers(name string) bool {
 	_, ok := em.names[name]
 	if ok {
 		delete(em.names, name)
-		delete(em.events, name)
+		delete(em.handlers, name)
 	}
 	return ok
 }
 
-// EventsByName get events and handlers by name
-func (em *EventManager) EventsByName(name string) (es []EventHandler) {
-	es, _ = em.events[name]
-	return
-}
-
-// Events get all events and handlers
-func (em *EventManager) Events() map[string][]EventHandler {
-	return em.events
-}
-
-// Names get all event names
-func (em *EventManager) Names() map[string]int {
-	return em.names
-}
-
-// Clear all events info.
+// Clear all handlers info.
 func (em *EventManager) Clear() {
-	em.events = map[string][]EventHandler{}
+	em.names = map[string]int{}
+	em.handlers = map[string][]HandlerFunc{}
 }
