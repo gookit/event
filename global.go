@@ -8,8 +8,8 @@ var DefaultEM = NewManager("default")
  *************************************************************/
 
 // On register a event and listener
-func On(name string, listener Listener) {
-	DefaultEM.On(name, listener)
+func On(name string, listener Listener, priority int) {
+	DefaultEM.On(name, listener, priority)
 }
 
 // Fire fire listeners by name.
@@ -39,6 +39,11 @@ func HasListeners(name string) bool {
 // AddEvent has event check.
 func AddEvent(e Event) {
 	DefaultEM.AddEvent(e)
+}
+
+// GetEvent get event by name.
+func GetEvent(name string) (Event, bool) {
+	return DefaultEM.GetEvent(name)
 }
 
 // HasEvent has event check.

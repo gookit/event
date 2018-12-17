@@ -1,5 +1,10 @@
 package simpleevent
 
+import (
+	"reflect"
+	"runtime"
+)
+
 // DefaultEM default event manager
 var DefaultEM = NewEventManager()
 
@@ -21,4 +26,8 @@ func Fire(name string, args ...interface{}) error {
 // MustFire fire event by name. will panic on error
 func MustFire(name string, args ...interface{}) {
 	DefaultEM.MustFire(name, args)
+}
+
+func funcName(f interface{}) string {
+	return runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
 }

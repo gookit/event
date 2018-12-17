@@ -1,3 +1,5 @@
+// Package event is lightweight event manager and dispatcher implements by Go.
+//
 package event
 
 // Event interface

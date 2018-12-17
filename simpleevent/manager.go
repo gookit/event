@@ -1,6 +1,7 @@
 package simpleevent
 
 import (
+	"bytes"
 	"strings"
 	"sync"
 )
@@ -127,6 +128,19 @@ func (em *EventManager) EventHandlers() map[string][]HandlerFunc {
 // EventNames get all event names
 func (em *EventManager) EventNames() map[string]int {
 	return em.names
+}
+
+// String convert to string.
+func (em *EventManager) String() string {
+	buf := new(bytes.Buffer)
+	for name, hs := range em.handlers {
+		buf.WriteString(name + " handlers:\n ")
+		for _, h := range hs {
+			buf.WriteString(funcName(h))
+		}
+		buf.WriteString("\n")
+	}
+	return buf.String()
 }
 
 // ClearHandlers clear handlers by name

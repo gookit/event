@@ -15,8 +15,8 @@ type Manager struct {
 	pool sync.Pool
 	// storage user custom Event instance. you can pre-define some Event instances.
 	events map[string]Event
-	// storage all event name and listeners map
-	listeners map[string][]Listener
+	// storage all event name and ListenerQueue map
+	listeners map[string]*ListenerQueue
 	// storage all event names by listened
 	listenedNames map[string]int
 }
@@ -28,7 +28,7 @@ func NewManager(name string) *Manager {
 	em := &Manager{
 		name:          name,
 		events:        make(map[string]Event),
-		listeners:     make(map[string][]Listener),
+		listeners:     make(map[string]*ListenerQueue),
 		listenedNames: make(map[string]int),
 	}
 
@@ -45,22 +45,36 @@ func NewManager(name string) *Manager {
  *************************************************************/
 
 // On register a event handler/listener
-func (em *Manager) On(name string, listener Listener) {
+func (em *Manager) On(name string, listener Listener, priority int) {
 	name = goodName(name)
 
-	if ls, ok := em.listeners[name]; ok {
+	if listener == nil {
+		panic("event: the event '" + name + "' listener cannot be empty")
+	}
+
+	li := &ListenerItem{priority, listener}
+
+	if lq, ok := em.listeners[name]; ok {
 		em.listenedNames[name]++
-		em.listeners[name] = append(ls, listener)
+		em.listeners[name] = lq.Push(li)
 	} else { // first add.
 		em.listenedNames[name] = 1
-		em.listeners[name] = []Listener{listener}
+		em.listeners[name] = (&ListenerQueue{}).Push(li)
 	}
 }
 
 // Fire event by name
 func (em *Manager) Fire(name string, args ...interface{}) (err error) {
+	name = goodName(name)
+
+	// call listeners use defined Event
+	if e, ok := em.events[name]; ok {
+		return em.FireEvent(e)
+	}
+
+	// create a basic event instance
 	e := em.pool.Get().(*BasicEvent)
-	e.name = name
+	e.SetName(name)
 	e.Fill(nil, args...)
 
 	// call listeners
@@ -81,39 +95,41 @@ func (em *Manager) MustFire(name string, args ...interface{}) {
 
 // FireEvent fire event by given BasicEvent instance
 func (em *Manager) FireEvent(e Event) (err error) {
-	name := e.Name()
-
 	// find matched listeners
-	listeners, ok := em.listeners[name]
+	name := e.Name()
+	lq, ok := em.listeners[name]
 	if !ok {
 		return
 	}
 
-	for _, listener := range listeners {
-		err = listener.Handle(e)
+	// sort by priority before call.
+	for _, li := range lq.Sort().Items() {
+		err = li.listener.Handle(e)
 		if err != nil || e.Aborted() {
 			return
 		}
 	}
 
-	// has group listeners.
-	// like "app.run" will trigger listeners on the "app.*"
+	// has group listeners. "app.*" "app.db.*"
+	// eg: "app.run" will trigger listeners on the "app.*"
 	pos := strings.LastIndexByte(name, '.')
 	if pos > 0 && pos < len(name) {
 		groupName := name[:pos] + Wildcard // "app.*"
 
-		if ls, ok := em.listeners[groupName]; ok {
-			err = em.callListeners(e, ls)
-			if err != nil || e.Aborted() {
-				return
+		if lq, ok := em.listeners[groupName]; ok {
+			for _, li := range lq.Sort().Items() {
+				err = li.listener.Handle(e)
+				if err != nil || e.Aborted() {
+					return
+				}
 			}
 		}
 	}
 
 	// has wildcard event listeners
-	if em.HasListeners(Wildcard) {
-		for _, listener := range em.listeners[Wildcard] {
-			err = listener.Handle(e)
+	if lq, ok := em.listeners[Wildcard]; ok {
+		for _, li := range lq.Sort().Items() {
+			err = li.listener.Handle(e)
 			if err != nil || e.Aborted() {
 				return
 			}
@@ -179,7 +195,7 @@ func (em *Manager) ClearEvents() {
 func (em *Manager) Clear() {
 	em.name = ""
 	em.events = make(map[string]Event)
-	em.listeners = make(map[string][]Listener)
+	em.listeners = make(map[string]*ListenerQueue)
 	em.listenedNames = make(map[string]int)
 }
 
@@ -200,7 +216,7 @@ func goodName(name string) string {
 	}
 
 	if !goodNameReg.MatchString(name) {
-		panic(`event: the added name is invalid, must match regex '^[a-zA-Z][\w-.]*$'`)
+		panic(`event: the event name is invalid, must match regex '^[a-zA-Z][\w-.]*$'`)
 	}
 
 	return name
