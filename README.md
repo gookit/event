@@ -1,9 +1,11 @@
 # event 
 
 [![GoDoc](https://godoc.org/github.com/gookit/event?status.svg)](https://godoc.org/github.com/gookit/event)
+[![Build Status](https://travis-ci.org/gookit/event.svg?branch=master)](https://travis-ci.org/gookit/event)
+[![Coverage Status](https://coveralls.io/repos/github/gookit/event/badge.svg?branch=master)](https://coveralls.io/github/gookit/event?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gookit/event)](https://goreportcard.com/report/github.com/gookit/event)
 
-Go实现的轻量级的事件管理、调度程序库
+Go实现的轻量级的事件管理、调度工具库
 
 - 支持定义事件对象
 - 支持对一个事件添加多个监听器
@@ -14,6 +16,13 @@ Go实现的轻量级的事件管理、调度程序库
 ## GoDoc
 
 - [godoc for github](https://godoc.org/github.com/gookit/event)
+
+## 主要方法
+
+- `On(name string, listener Listener, priority ...int)`
+- `Fire(name string, args ...interface{}) error`
+- `MustFire(name string, args ...interface{})`
+- `FireEvent(e Event) (err error)`
 
 ## 快速使用
 
@@ -36,13 +45,6 @@ func main() {
 	_ = event.Fire("evt1", "arg0", "arg1")
 }
 ```
-
-## 主要方法
-
-- `On(name string, listener Listener, priority int)`
-- `Fire(name string, args ...interface{}) error`
-- `MustFire(name string, args ...interface{})`
-- `FireEvent(e Event) (err error)`
 
 ## LICENSE
 

@@ -48,6 +48,11 @@ func (lq *ListenerQueue) Items() []*ListenerItem {
 	return lq.items
 }
 
+// Clear clear all listeners
+func (lq *ListenerQueue) Clear() {
+	lq.items = lq.items[0:0]
+}
+
 // ListenerItem storage a event listener and it's priority value.
 type ListenerItem struct {
 	priority int

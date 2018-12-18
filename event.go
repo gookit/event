@@ -36,6 +36,13 @@ func (e *BasicEvent) Aborted() bool {
 	return e.aborted
 }
 
+// Init event data
+func (e *BasicEvent) Init(name string, target interface{}, data ...interface{}) *BasicEvent {
+	e.SetName(name)
+	e.Fill(target, data...)
+	return e
+}
+
 // Fill event data
 func (e *BasicEvent) Fill(target interface{}, data ...interface{}) *BasicEvent {
 	e.data = data

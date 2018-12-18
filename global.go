@@ -8,8 +8,8 @@ var DefaultEM = NewManager("default")
  *************************************************************/
 
 // On register a event and listener
-func On(name string, listener Listener, priority int) {
-	DefaultEM.On(name, listener, priority)
+func On(name string, listener Listener, priority ...int) {
+	DefaultEM.On(name, listener, priority...)
 }
 
 // Fire fire listeners by name.

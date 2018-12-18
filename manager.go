@@ -9,6 +9,12 @@ import (
 // Wildcard event name
 const Wildcard = "*"
 
+// ManagerFace event manager interface
+type ManagerFace interface {
+	On(name string, listener Listener, priority ...int)
+	Fire(name string, args ...interface{}) error
+}
+
 // Manager event manager definition. for manage events and listeners
 type Manager struct {
 	name string
@@ -41,22 +47,30 @@ func NewManager(name string) *Manager {
 }
 
 /*************************************************************
- * Listener Manager
+ * Listener Manage
  *************************************************************/
 
-// On register a event handler/listener
-func (em *Manager) On(name string, listener Listener, priority int) {
+// On register a event handler/listener. can setting priority.
+// Usage:
+// 	On("evt0", listener)
+// 	On("evt0", listener, High)
+func (em *Manager) On(name string, listener Listener, priority ...int) {
 	name = goodName(name)
 
 	if listener == nil {
 		panic("event: the event '" + name + "' listener cannot be empty")
 	}
 
-	li := &ListenerItem{priority, listener}
+	pv := Normal
+	if len(priority) > 0 {
+		pv = priority[0]
+	}
+
+	li := &ListenerItem{pv, listener}
 
 	if lq, ok := em.listeners[name]; ok {
+		lq.Push(li) // append.
 		em.listenedNames[name]++
-		em.listeners[name] = lq.Push(li)
 	} else { // first add.
 		em.listenedNames[name] = 1
 		em.listeners[name] = (&ListenerQueue{}).Push(li)
@@ -144,17 +158,28 @@ func (em *Manager) HasListeners(name string) bool {
 	return ok
 }
 
+// ListenersCount get listeners number for the event name.
+func (em *Manager) ListenersCount(name string) int {
+	if lq, ok := em.listeners[name]; ok {
+		return lq.Len()
+	}
+	return 0
+}
+
 // ClearListeners by name
 func (em *Manager) ClearListeners(name string) {
 	_, ok := em.listenedNames[name]
 	if ok {
-		delete(em.listenedNames, name)
+		em.listeners[name].Clear()
+
+		// delete from manager
 		delete(em.listeners, name)
+		delete(em.listenedNames, name)
 	}
 }
 
 /*************************************************************
- * Event Manager
+ * Event Manage
  *************************************************************/
 
 // AddEvent add a defined event instance to manager.
@@ -193,20 +218,16 @@ func (em *Manager) ClearEvents() {
 
 // Clear all data
 func (em *Manager) Clear() {
+	// clear all listeners
+	for _, lq := range em.listeners {
+		lq.Clear()
+	}
+
+	// reset all
 	em.name = ""
 	em.events = make(map[string]Event)
 	em.listeners = make(map[string]*ListenerQueue)
 	em.listenedNames = make(map[string]int)
-}
-
-func (em *Manager) callListeners(e Event, listeners []Listener) (err error) {
-	for _, listener := range listeners {
-		err = listener.Handle(e)
-		if err != nil || e.Aborted() {
-			return
-		}
-	}
-	return
 }
 
 func goodName(name string) string {
