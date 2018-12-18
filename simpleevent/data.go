@@ -23,8 +23,8 @@ func (e *EventData) Abort() {
 	e.aborted = true
 }
 
-// Aborted check.
-func (e *EventData) Aborted() bool {
+// IsAborted check.
+func (e *EventData) IsAborted() bool {
 	return e.aborted
 }
 

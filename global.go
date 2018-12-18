@@ -13,8 +13,8 @@ func On(name string, listener Listener, priority ...int) {
 }
 
 // Fire fire listeners by name.
-func Fire(name string, args ...interface{}) error {
-	return DefaultEM.Fire(name, args)
+func Fire(name string, params M) error {
+	return DefaultEM.Fire(name, params)
 }
 
 // FireEvent fire listeners by Event instance.
@@ -23,8 +23,8 @@ func FireEvent(e Event) error {
 }
 
 // MustFire fire event by name. will panic on error
-func MustFire(name string, args ...interface{}) {
-	DefaultEM.MustFire(name, args)
+func MustFire(name string, params M) {
+	DefaultEM.MustFire(name, params)
 }
 
 // HasListeners has listeners for the event name.

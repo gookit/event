@@ -14,18 +14,25 @@ var emptyListener = func(e Event) error {
 func TestEvent(t *testing.T) {
 	e := &BasicEvent{}
 	e.SetName("n1")
-	e.SetData("arg0", "arg1")
+	e.SetData(M{
+		"arg0": "val0",
+	})
 	e.SetTarget("tgt")
 
-	assert.False(t, e.Aborted())
-	e.Abort()
-	assert.True(t, e.Aborted())
+	e.Add("arg1", "val1")
+
+	assert.False(t, e.IsAborted())
+	e.Abort(true)
+	assert.True(t, e.IsAborted())
 
 	assert.Equal(t, "n1", e.Name())
 	assert.Equal(t, "tgt", e.Target())
-	assert.Equal(t, "arg0", e.Get(0))
-	assert.Equal(t, nil, e.Get(10))
-	assert.Equal(t, []interface{}{"arg0", "arg1"}, e.Data())
+	assert.Contains(t, e.Data(), "arg1")
+	assert.Equal(t, "val0", e.Get("arg0"))
+	assert.Equal(t, nil, e.Get("not-exist"))
+
+	e.Set("arg1", "new val")
+	assert.Equal(t, "new val", e.Get("arg1"))
 }
 
 func TestAddEvent(t *testing.T) {
@@ -40,12 +47,12 @@ func TestAddEvent(t *testing.T) {
 	assert.False(t, ok)
 
 	// AddEvent
-	e := NewBasic("evt1").Fill(nil, "inhere")
+	e := NewBasic("evt1", M{"k1": "inhere"})
 	AddEvent(e)
-	e2 := (&BasicEvent{}).Init("evt2", nil)
-	AddEvent(e2)
+	// add by AttachTo
+	NewBasic("evt2", nil).AttachTo(DefaultEM)
 
-	assert.False(t, e.Aborted())
+	assert.False(t, e.IsAborted())
 	assert.True(t, HasEvent("evt1"))
 	assert.True(t, HasEvent("evt2"))
 	assert.False(t, HasEvent("not-exist"))
@@ -71,9 +78,13 @@ func TestOn(t *testing.T) {
 	assert.Panics(t, func() {
 		On("name", nil, 0)
 	})
+	assert.Panics(t, func() {
+		On("++df", ListenerFunc(emptyListener), 0)
+	})
 
 	On("n1", ListenerFunc(emptyListener), Min)
 	assert.Equal(t, 1, DefaultEM.ListenersCount("n1"))
+	assert.Equal(t, 0, DefaultEM.ListenersCount("not-exist"))
 	assert.True(t, HasListeners("n1"))
 	assert.False(t, HasListeners("name"))
 
@@ -92,23 +103,36 @@ func TestFire(t *testing.T) {
 	On("evt1", ListenerFunc(emptyListener), High)
 	assert.True(t, HasListeners("evt1"))
 
-	err := Fire("evt1")
+	err := Fire("evt1", nil)
 	assert.NoError(t, err)
-
 	assert.Equal(t, "event: evt1", buf.String())
+
+	NewBasic("evt2", nil).AttachTo(DefaultEM)
+	On("evt2", ListenerFunc(func(e Event) error {
+		assert.Equal(t, "evt2", e.Name())
+		return nil
+	}), AboveNormal)
+
+	assert.True(t, HasListeners("evt2"))
+	assert.NoError(t, Fire("evt2", nil))
+
+	// clear all
+	DefaultEM.Clear()
+	assert.False(t, HasListeners("evt1"))
+	assert.False(t, HasListeners("evt2"))
 }
 
 func TestFireEvent(t *testing.T) {
 	buf := new(bytes.Buffer)
 
-	evt1 := NewBasic("evt1").Fill(nil, "inhere")
+	evt1 := NewBasic("evt1", nil).Fill(nil, M{"n": "inhere"})
 	AddEvent(evt1)
 
 	assert.True(t, HasEvent("evt1"))
 	assert.False(t, HasEvent("not-exist"))
 
 	On("evt1", ListenerFunc(func(e Event) error {
-		_, _ = fmt.Fprintf(buf, "event: %s", e.Name())
+		_, _ = fmt.Fprintf(buf, "event: %s, params: n=%s", e.Name(), e.Get("n"))
 		return nil
 	}), Normal)
 
@@ -117,8 +141,7 @@ func TestFireEvent(t *testing.T) {
 
 	err := FireEvent(evt1)
 	assert.NoError(t, err)
-
-	assert.Equal(t, "event: evt1", buf.String())
+	assert.Equal(t, "event: evt1, params: n=inhere", buf.String())
 }
 
 func TestMustFire(t *testing.T) {
@@ -128,10 +151,35 @@ func TestMustFire(t *testing.T) {
 	On("n2", ListenerFunc(emptyListener), Min)
 
 	assert.Panics(t, func() {
-		MustFire("n1")
+		MustFire("n1", nil)
 	})
 
 	assert.NotPanics(t, func() {
-		MustFire("n2")
+		MustFire("n2", nil)
 	})
+}
+
+type testListener struct {
+	userData string
+}
+
+func (l *testListener) Handle(e Event) error {
+	e.Set("result", fmt.Sprintf("handled %s(%s)", e.Name(), l.userData))
+	return nil
+}
+
+func TestManager_FireEvent(t *testing.T) {
+	em := NewManager("test")
+
+	e1 := NewBasic("e1", nil)
+	em.AddEvent(e1)
+
+	em.On("e1", &testListener{"HI"})
+
+	err := em.FireEvent(e1)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "handled e1(HI)", e1.Get("result"))
+
+	em.Clear()
 }

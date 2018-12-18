@@ -5,9 +5,14 @@ package event
 // Event interface
 type Event interface {
 	Name() string
-	Data() []interface{}
-	Abort()
-	Aborted() bool
+	// Target() interface{}
+	Get(key string) interface{}
+	Add(key string, val interface{})
+	Set(key string, val interface{})
+	Data() map[string]interface{}
+	SetData(M) Event
+	Abort(bool)
+	IsAborted() bool
 }
 
 // BasicEvent a basic event struct define.
@@ -15,83 +20,110 @@ type BasicEvent struct {
 	// event name
 	name string
 	// user data.
-	data []interface{}
+	data map[string]interface{}
 	// target
-	target  interface{}
+	target interface{}
+	// mark is aborted
 	aborted bool
 }
 
 // NewBasic new an basic event instance
-func NewBasic(name string) *BasicEvent {
-	return &BasicEvent{name: name}
+func NewBasic(name string, data M) *BasicEvent {
+	if data == nil {
+		data = make(map[string]interface{})
+	}
+
+	return &BasicEvent{
+		name: name,
+		data: data,
+	}
 }
 
-// Abort abort event exec
-func (e *BasicEvent) Abort() {
-	e.aborted = true
-}
-
-// Aborted check.
-func (e *BasicEvent) Aborted() bool {
-	return e.aborted
-}
-
-// Init event data
-func (e *BasicEvent) Init(name string, target interface{}, data ...interface{}) *BasicEvent {
-	e.SetName(name)
-	e.Fill(target, data...)
-	return e
+// Abort abort event loop exec
+func (e *BasicEvent) Abort(abort bool) {
+	e.aborted = abort
 }
 
 // Fill event data
-func (e *BasicEvent) Fill(target interface{}, data ...interface{}) *BasicEvent {
-	e.data = data
+func (e *BasicEvent) Fill(target interface{}, data M) *BasicEvent {
+	if data != nil {
+		e.data = data
+	}
+
 	e.target = target
 	return e
 }
 
+// AttachTo add current event to the event manager.
+func (e *BasicEvent) AttachTo(em ManagerFace) {
+	em.AddEvent(e)
+}
+
 func (e *BasicEvent) reset() {
 	e.name = ""
-	e.data = make([]interface{}, 0)
+	e.data = make(map[string]interface{})
 	e.target = nil
 	e.aborted = false
 }
 
 // Get get data by index
-func (e *BasicEvent) Get(index int) interface{} {
-	if len(e.data) > index {
-		return e.data[index]
+func (e *BasicEvent) Get(key string) interface{} {
+	if v, ok := e.data[key]; ok {
+		return v
 	}
 
 	return nil
 }
 
-// Name get name
+// Add value by key
+func (e *BasicEvent) Add(key string, val interface{}) {
+	if _, ok := e.data[key]; !ok {
+		e.data[key] = val
+	}
+}
+
+// Set value by key
+func (e *BasicEvent) Set(key string, val interface{}) {
+	e.data[key] = val
+}
+
+// Name get event name
 func (e *BasicEvent) Name() string {
 	return e.name
 }
 
 // Data get all data
-func (e *BasicEvent) Data() []interface{} {
+func (e *BasicEvent) Data() map[string]interface{} {
 	return e.data
 }
 
-// SetData set data to the event
-func (e *BasicEvent) SetData(data ...interface{}) {
-	e.data = data
-}
-
-// SetName set name
-func (e *BasicEvent) SetName(name string) {
-	e.name = name
-}
-
-// SetTarget set target
-func (e *BasicEvent) SetTarget(target interface{}) {
-	e.target = target
+// IsAborted check.
+func (e *BasicEvent) IsAborted() bool {
+	return e.aborted
 }
 
 // Target get target
 func (e *BasicEvent) Target() interface{} {
 	return e.target
+}
+
+// SetName set event name
+func (e *BasicEvent) SetName(name string) *BasicEvent {
+	e.name = name
+	return e
+}
+
+// SetData set data to the event
+func (e *BasicEvent) SetData(data M) Event {
+	if data != nil {
+		e.data = data
+	}
+
+	return e
+}
+
+// SetTarget set event target
+func (e *BasicEvent) SetTarget(target interface{}) *BasicEvent {
+	e.target = target
+	return e
 }

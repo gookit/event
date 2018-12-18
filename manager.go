@@ -9,10 +9,16 @@ import (
 // Wildcard event name
 const Wildcard = "*"
 
+// M is short name fo map[string]...
+type M map[string]interface{}
+
 // ManagerFace event manager interface
 type ManagerFace interface {
+	// events
+	AddEvent(Event)
+	// listeners
 	On(name string, listener Listener, priority ...int)
-	Fire(name string, args ...interface{}) error
+	Fire(name string, params M) error
 }
 
 // Manager event manager definition. for manage events and listeners
@@ -77,19 +83,31 @@ func (em *Manager) On(name string, listener Listener, priority ...int) {
 	}
 }
 
+// MustFire fire event by name. will panic on error
+func (em *Manager) MustFire(name string, params M) {
+	err := em.Fire(name, params)
+	if err != nil {
+		panic(err)
+	}
+}
+
 // Fire event by name
-func (em *Manager) Fire(name string, args ...interface{}) (err error) {
+func (em *Manager) Fire(name string, params M) (err error) {
 	name = goodName(name)
 
 	// call listeners use defined Event
 	if e, ok := em.events[name]; ok {
+		if params != nil {
+			e.SetData(params)
+		}
+
 		return em.FireEvent(e)
 	}
 
 	// create a basic event instance
 	e := em.pool.Get().(*BasicEvent)
 	e.SetName(name)
-	e.Fill(nil, args...)
+	e.SetData(params)
 
 	// call listeners
 	err = em.FireEvent(e)
@@ -99,12 +117,14 @@ func (em *Manager) Fire(name string, args ...interface{}) (err error) {
 	return
 }
 
-// MustFire fire event by name. will panic on error
-func (em *Manager) MustFire(name string, args ...interface{}) {
-	err := em.Fire(name, args...)
-	if err != nil {
-		panic(err)
-	}
+// AsyncFire async fire event by 'go' keywords
+// TODO ... 实验性的
+func (em *Manager) AsyncFire(e Event) (err error) {
+	go func(e Event) {
+		_ = em.FireEvent(e)
+	}(e)
+
+	return nil
 }
 
 // FireEvent fire event by given BasicEvent instance
@@ -119,7 +139,7 @@ func (em *Manager) FireEvent(e Event) (err error) {
 	// sort by priority before call.
 	for _, li := range lq.Sort().Items() {
 		err = li.listener.Handle(e)
-		if err != nil || e.Aborted() {
+		if err != nil || e.IsAborted() {
 			return
 		}
 	}
@@ -133,7 +153,7 @@ func (em *Manager) FireEvent(e Event) (err error) {
 		if lq, ok := em.listeners[groupName]; ok {
 			for _, li := range lq.Sort().Items() {
 				err = li.listener.Handle(e)
-				if err != nil || e.Aborted() {
+				if err != nil || e.IsAborted() {
 					return
 				}
 			}
@@ -144,7 +164,7 @@ func (em *Manager) FireEvent(e Event) (err error) {
 	if lq, ok := em.listeners[Wildcard]; ok {
 		for _, li := range lq.Sort().Items() {
 			err = li.listener.Handle(e)
-			if err != nil || e.Aborted() {
+			if err != nil || e.IsAborted() {
 				return
 			}
 		}

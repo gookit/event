@@ -83,7 +83,7 @@ func (em *EventManager) Fire(name string, args ...interface{}) (err error) {
 
 func (em *EventManager) doFire(e *EventData, handlers []HandlerFunc) (err error) {
 	err = em.callHandlers(e, handlers)
-	if err != nil || e.Aborted() {
+	if err != nil || e.IsAborted() {
 		return
 	}
 
@@ -101,7 +101,7 @@ func (em *EventManager) doFire(e *EventData, handlers []HandlerFunc) (err error)
 func (em *EventManager) callHandlers(e *EventData, handlers []HandlerFunc) (err error) {
 	for _, handler := range handlers {
 		err = handler(e)
-		if err != nil || e.Aborted() {
+		if err != nil || e.IsAborted() {
 			return
 		}
 	}
