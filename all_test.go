@@ -164,7 +164,13 @@ type testListener struct {
 }
 
 func (l *testListener) Handle(e Event) error {
-	e.Set("result", fmt.Sprintf("handled %s(%s)", e.Name(), l.userData))
+	if ret := e.Get("result"); ret != nil {
+		str := ret.(string) + fmt.Sprintf(" -> %s(%s)", e.Name(), l.userData)
+		e.Set("result", str)
+	} else {
+		e.Set("result", fmt.Sprintf("handled: %s(%s)", e.Name(), l.userData))
+	}
+
 	return nil
 }
 
@@ -174,12 +180,14 @@ func TestManager_FireEvent(t *testing.T) {
 	e1 := NewBasic("e1", nil)
 	em.AddEvent(e1)
 
-	em.On("e1", &testListener{"HI"})
+	em.On("e1", &testListener{"HI"}, Min)
+	em.On("e1", &testListener{"WEL"}, High)
+	em.On("e1", &testListener{"COM"}, BelowNormal)
 
 	err := em.FireEvent(e1)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "handled e1(HI)", e1.Get("result"))
+	assert.Equal(t, "handled: e1(WEL) -> e1(COM) -> e1(HI)", e1.Get("result"))
 
 	em.Clear()
 }

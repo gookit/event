@@ -1,6 +1,8 @@
 package event
 
-import "sort"
+import (
+	"sort"
+)
 
 // Listener interface
 type Listener interface {
@@ -31,7 +33,9 @@ func (lq *ListenerQueue) Push(li *ListenerItem) *ListenerQueue {
 	return lq
 }
 
-// Sort the queue items by ListenerItem's priority
+// Sort the queue items by ListenerItem's priority.
+// Priority:
+// 	High > Low
 func (lq *ListenerQueue) Sort() *ListenerQueue {
 	ls := ListenerItems(lq.items)
 
@@ -69,10 +73,10 @@ func (ls ListenerItems) Len() int {
 
 // Less implements the sort.Interface.Less.
 func (ls ListenerItems) Less(i, j int) bool {
-	return ls[i].priority < ls[j].priority
+	return ls[i].priority > ls[j].priority
 }
 
 // Swap implements the sort.Interface.Swap.
 func (ls ListenerItems) Swap(i, j int) {
-	ls[i].priority, ls[j].priority = ls[j].priority, ls[i].priority
+	ls[i], ls[j] = ls[j], ls[i]
 }
