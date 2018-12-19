@@ -136,6 +136,9 @@ func (em *Manager) FireEvent(e Event) (err error) {
 		return
 	}
 
+	// ensure aborted is false.
+	e.Abort(false)
+
 	// sort by priority before call.
 	for _, li := range lq.Sort().Items() {
 		err = li.listener.Handle(e)

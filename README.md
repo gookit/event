@@ -20,8 +20,8 @@ Go实现的轻量级的事件管理、调度工具库
 ## 主要方法
 
 - `On(name string, listener Listener, priority ...int)`
-- `Fire(name string, args ...interface{}) error`
-- `MustFire(name string, args ...interface{})`
+- `Fire(name string, params M) error`
+- `MustFire(name string, params M)`
 - `FireEvent(e Event) (err error)`
 
 ## 快速使用
