@@ -78,7 +78,6 @@ func (em *Manager) On(name string, listener Listener, priority ...int) {
 
 	if lq, ok := em.listeners[name]; ok {
 		lq.Push(li) // append.
-		em.listenedNames[name]++
 	} else { // first add.
 		em.listenedNames[name] = 1
 		em.listeners[name] = (&ListenerQueue{}).Push(li)
@@ -179,7 +178,7 @@ func (em *Manager) FireEvent(e Event) (err error) {
 
 // HasListeners has listeners for the event name.
 func (em *Manager) HasListeners(name string) bool {
-	_, ok := em.listenedNames[name]
+	_, ok := em.listeners[name]
 	return ok
 }
 
@@ -191,8 +190,43 @@ func (em *Manager) ListenersCount(name string) int {
 	return 0
 }
 
-// ClearListeners by name
-func (em *Manager) ClearListeners(name string) {
+// ListenedNames get listened event names
+func (em *Manager) ListenedNames() map[string]int {
+	return em.listenedNames
+}
+
+// RemoveListener remove a given listener, you can limit event name.
+// Usage:
+//	RemoveListener("", listener)
+//	RemoveListener("name", listener) // limit event name.
+func (em *Manager) RemoveListener(name string, listener Listener) {
+	if name != "" {
+		if lq, ok := em.listeners[name]; ok {
+			lq.Remove(listener)
+
+			// delete from manager
+			if lq.IsEmpty() {
+				delete(em.listeners, name)
+				delete(em.listenedNames, name)
+			}
+		}
+		return
+	}
+
+	// name is empty. find all listener and remove matched.
+	for name, lq := range em.listeners {
+		lq.Remove(listener)
+
+		// delete from manager
+		if lq.IsEmpty() {
+			delete(em.listeners, name)
+			delete(em.listenedNames, name)
+		}
+	}
+}
+
+// RemoveListeners remove listeners by given name
+func (em *Manager) RemoveListeners(name string) {
 	_, ok := em.listenedNames[name]
 	if ok {
 		em.listeners[name].Clear()
@@ -225,15 +259,15 @@ func (em *Manager) HasEvent(name string) bool {
 	return ok
 }
 
-// DelEvent delete Event by name
-func (em *Manager) DelEvent(name string) {
+// RemoveEvent delete Event by name
+func (em *Manager) RemoveEvent(name string) {
 	if _, ok := em.events[name]; ok {
 		delete(em.events, name)
 	}
 }
 
-// ClearEvents clear all events
-func (em *Manager) ClearEvents() {
+// RemoveEvents remove all registered events
+func (em *Manager) RemoveEvents() {
 	em.events = map[string]Event{}
 }
 

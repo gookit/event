@@ -10,7 +10,8 @@ Go实现的轻量级的事件管理、调度工具库
 - 支持定义事件对象
 - 支持对一个事件添加多个监听器
 - 支持设置监听器的优先级
-- 支持根据事件名称来进行一组事件监听
+- 支持根据事件名称来进行一组事件监听.
+  - eg 触发 `app.run`, `app.end` 都将同时会触发 `app.*` 事件
 - 支持使用通配符`*`来监听全部事件
 
 ## GoDoc
@@ -35,14 +36,23 @@ import (
 )
 
 func main() {
-	// register event listener
+	// 注册事件监听器
 	event.On("evt1", event.ListenerFunc(func(e event.Event) error {
         fmt.Printf("handle event: %s\n", e.Name())
         return nil
     }), event.Normal)
 	
+	// 注册多个
+	event.On("evt1", event.ListenerFunc(func(e event.Event) error {
+        fmt.Printf("handle event: %s\n", e.Name())
+        return nil
+    }), event.High)
+	
 	// ... ...
-	_ = event.Fire("evt1", "arg0", "arg1")
+	
+	// 触发事件
+	// 注意：第二个监听器的优先级更高，所以它会先被执行
+	event.MustFire("evt1", event.M{"arg0": "val0", "arg1": "val1"})
 }
 ```
 

@@ -37,7 +37,7 @@ func TestEvent(t *testing.T) {
 }
 
 func TestAddEvent(t *testing.T) {
-	DefaultEM.ClearEvents()
+	DefaultEM.RemoveEvents()
 
 	// no name
 	assert.Panics(t, func() {
@@ -63,12 +63,12 @@ func TestAddEvent(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, e, r1)
 
-	// DelEvent
-	DefaultEM.DelEvent("evt2")
+	// RemoveEvent
+	DefaultEM.RemoveEvent("evt2")
 	assert.False(t, HasEvent("evt2"))
 
-	// ClearEvents
-	DefaultEM.ClearEvents()
+	// RemoveEvents
+	DefaultEM.RemoveEvents()
 	assert.False(t, HasEvent("evt1"))
 }
 
@@ -89,7 +89,7 @@ func TestOn(t *testing.T) {
 	assert.True(t, HasListeners("n1"))
 	assert.False(t, HasListeners("name"))
 
-	DefaultEM.ClearListeners("n1")
+	DefaultEM.RemoveListeners("n1")
 	assert.False(t, HasListeners("n1"))
 }
 
@@ -213,21 +213,60 @@ func TestManager_AsyncFire(t *testing.T) {
 	em.Clear()
 }
 
-func TestGroupEvent(t *testing.T) {
+func TestListenGroupEvent(t *testing.T) {
 	em := NewManager("test")
-	em.On("app.evt1", ListenerFunc(func(e Event) error {
-		assert.Equal(t, "app.evt1", e.Name())
-		return nil
-	}))
-	em.On("app.*", ListenerFunc(func(e Event) error {
-		assert.Equal(t, "app.evt1", e.Name())
-		return nil
-	}))
-	em.On("*", ListenerFunc(func(e Event) error {
-		assert.Equal(t, "app.evt1", e.Name())
-		return nil
-	}))
 
+	e1 := NewBasic("app.evt1", M{"buf": new(bytes.Buffer)})
+	e1.AttachTo(em)
+
+	l2 := ListenerFunc(func(e Event) error {
+		e.Get("buf").(*bytes.Buffer).WriteString(" > 2 " + e.Name())
+		return nil
+	})
+	l3 := ListenerFunc(func(e Event) error {
+		e.Get("buf").(*bytes.Buffer).WriteString(" > 3 " + e.Name())
+		return nil
+	})
+
+	em.On("app.evt1", ListenerFunc(func(e Event) error {
+		e.Get("buf").(*bytes.Buffer).WriteString("Hi > 1 " + e.Name())
+		return nil
+	}))
+	em.On("app.*", l2)
+	em.On("*", l3)
+
+	buf := e1.Get("buf").(*bytes.Buffer)
 	err := em.Fire("app.evt1", nil)
 	assert.NoError(t, err)
+	assert.Equal(t, "Hi > 1 app.evt1 > 2 app.evt1 > 3 app.evt1", buf.String())
+
+	em.RemoveListener("app.*", l2)
+	assert.Len(t, em.ListenedNames(), 2)
+	em.On("app.*", ListenerFunc(func(e Event) error {
+		return fmt.Errorf("an error")
+	}))
+
+	buf.Reset()
+	err = em.Fire("app.evt1", nil)
+	assert.Error(t, err)
+	assert.Equal(t, "Hi > 1 app.evt1", buf.String())
+
+	em.RemoveListeners("app.*")
+	em.RemoveListener("", l3)
+	em.On("app.*", l2) // re-add
+	em.On("*", ListenerFunc(func(e Event) error {
+		return fmt.Errorf("an error")
+	}))
+	assert.Len(t, em.ListenedNames(), 3)
+
+	buf.Reset()
+	err = em.Fire("app.evt1", nil)
+	assert.Error(t, err)
+	assert.Equal(t, "Hi > 1 app.evt1 > 2 app.evt1", buf.String())
+
+	em.RemoveListener("", nil)
+
+	// clear
+	em.Clear()
+	buf.Reset()
 }
