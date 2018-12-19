@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
 
 var emptyListener = func(e Event) error {
@@ -110,16 +111,19 @@ func TestFire(t *testing.T) {
 	NewBasic("evt2", nil).AttachTo(DefaultEM)
 	On("evt2", ListenerFunc(func(e Event) error {
 		assert.Equal(t, "evt2", e.Name())
+		assert.Equal(t, "v", e.Get("k"))
 		return nil
 	}), AboveNormal)
 
 	assert.True(t, HasListeners("evt2"))
-	assert.NoError(t, Fire("evt2", nil))
+	assert.NoError(t, Fire("evt2", M{"k": "v"}))
 
 	// clear all
 	DefaultEM.Clear()
 	assert.False(t, HasListeners("evt1"))
 	assert.False(t, HasListeners("evt2"))
+
+	assert.NoError(t, Fire("not-exist", nil))
 }
 
 func TestFireEvent(t *testing.T) {
@@ -190,4 +194,40 @@ func TestManager_FireEvent(t *testing.T) {
 	assert.Equal(t, "handled: e1(WEL) -> e1(COM) -> e1(HI)", e1.Get("result"))
 
 	em.Clear()
+}
+
+func TestManager_AsyncFire(t *testing.T) {
+	em := NewManager("test")
+	em.On("e1", ListenerFunc(func(e Event) error {
+		assert.Equal(t, map[string]interface{}{"k": "v"}, e.Data())
+		return nil
+	}))
+
+	e1 := NewBasic("e1", M{"k": "v"})
+
+	err := em.AsyncFire(e1)
+
+	time.Sleep(time.Second / 5)
+	assert.NoError(t, err)
+
+	em.Clear()
+}
+
+func TestGroupEvent(t *testing.T) {
+	em := NewManager("test")
+	em.On("app.evt1", ListenerFunc(func(e Event) error {
+		assert.Equal(t, "app.evt1", e.Name())
+		return nil
+	}))
+	em.On("app.*", ListenerFunc(func(e Event) error {
+		assert.Equal(t, "app.evt1", e.Name())
+		return nil
+	}))
+	em.On("*", ListenerFunc(func(e Event) error {
+		assert.Equal(t, "app.evt1", e.Name())
+		return nil
+	}))
+
+	err := em.Fire("app.evt1", nil)
+	assert.NoError(t, err)
 }

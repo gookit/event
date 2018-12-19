@@ -61,7 +61,9 @@ func NewManager(name string) *Manager {
 // 	On("evt0", listener)
 // 	On("evt0", listener, High)
 func (em *Manager) On(name string, listener Listener, priority ...int) {
-	name = goodName(name)
+	if name != Wildcard {
+		name = goodName(name)
+	}
 
 	if listener == nil {
 		panic("event: the event '" + name + "' listener cannot be empty")
@@ -151,7 +153,7 @@ func (em *Manager) FireEvent(e Event) (err error) {
 	// eg: "app.run" will trigger listeners on the "app.*"
 	pos := strings.LastIndexByte(name, '.')
 	if pos > 0 && pos < len(name) {
-		groupName := name[:pos] + Wildcard // "app.*"
+		groupName := name[:pos+1] + Wildcard // "app.*"
 
 		if lq, ok := em.listeners[groupName]; ok {
 			for _, li := range lq.Sort().Items() {

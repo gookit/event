@@ -27,7 +27,7 @@ func (lq *ListenerQueue) Len() int {
 	return len(lq.items)
 }
 
-// Len get items length
+// Push get items length
 func (lq *ListenerQueue) Push(li *ListenerItem) *ListenerQueue {
 	lq.items = append(lq.items, li)
 	return lq
