@@ -40,8 +40,7 @@ func (s *testSubscriber) SubscribeEvents() map[string]interface{} {
 		"e2": ListenerItem{
 			Priority: AboveNormal,
 			Listener: ListenerFunc(func(e Event) error {
-				e.Set("e2-key", "val2")
-				return nil
+				return fmt.Errorf("an error")
 			}),
 		},
 	}
@@ -319,6 +318,6 @@ func TestManager_AddSubscriber(t *testing.T) {
 	em := NewManager("test")
 	em.AddSubscriber(&testSubscriber{})
 
-	ers := em.FireBatch("e1", "e2")
-	assert.Len(t, ers, 0)
+	ers := em.FireBatch("e1", NewBasic("e2", nil))
+	assert.Len(t, ers, 1)
 }
