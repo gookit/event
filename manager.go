@@ -82,8 +82,8 @@ func (em *Manager) AddSubscriber(sbr Subscriber) {
 		switch lt := listener.(type) {
 		case Listener:
 			em.On(name, lt)
-		case ListenerFunc:
-			em.On(name, lt)
+		// case ListenerFunc:
+		// 	em.On(name, lt)
 		case ListenerItem:
 			em.addListenerItem(name, &lt)
 		default:

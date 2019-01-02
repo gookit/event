@@ -43,6 +43,7 @@ func (s *testSubscriber) SubscribeEvents() map[string]interface{} {
 				return fmt.Errorf("an error")
 			}),
 		},
+		"e3": &testListener{},
 	}
 }
 
@@ -314,10 +315,24 @@ func TestManager_AwaitFire(t *testing.T) {
 	assert.Equal(t, "nv", e1.Get("nk"))
 }
 
+type testSubscriber2 struct{}
+
+func (s testSubscriber2) SubscribeEvents() map[string]interface{} {
+	return map[string]interface{}{
+		"e1": "invalid",
+	}
+}
+
 func TestManager_AddSubscriber(t *testing.T) {
 	em := NewManager("test")
 	em.AddSubscriber(&testSubscriber{})
 
 	ers := em.FireBatch("e1", NewBasic("e2", nil))
 	assert.Len(t, ers, 1)
+
+	assert.Panics(t, func() {
+		em.AddSubscriber(testSubscriber2{})
+	})
+
+	em.Clear()
 }
