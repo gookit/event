@@ -53,36 +53,66 @@ func NewManager(name string) *Manager {
 }
 
 /*************************************************************
- * Listener Manage
+ * Listener Manage: - register listener
  *************************************************************/
+
+// AddListener alias of the method On()
+func (em *Manager) AddListener(name string, listener Listener, priority ...int) {
+	em.On(name, listener, priority...)
+}
 
 // On register a event handler/listener. can setting priority.
 // Usage:
 // 	On("evt0", listener)
 // 	On("evt0", listener, High)
 func (em *Manager) On(name string, listener Listener, priority ...int) {
-	if name != Wildcard {
-		name = goodName(name)
-	}
-
-	if listener == nil {
-		panic("event: the event '" + name + "' listener cannot be empty")
-	}
-
 	pv := Normal
 	if len(priority) > 0 {
 		pv = priority[0]
 	}
 
-	li := &ListenerItem{pv, listener}
+	em.addListenerItem(name, &ListenerItem{pv, listener})
+}
 
+// AddSubscriber add event subscriber.
+// you can register multi event listeners in a struct func.
+// more usage please see README or test.
+func (em *Manager) AddSubscriber(sbr Subscriber) {
+	for name, listener := range sbr.SubscribeEvents() {
+		switch lt := listener.(type) {
+		case Listener:
+			em.On(name, lt)
+		case ListenerFunc:
+			em.On(name, lt)
+		case ListenerItem:
+			em.addListenerItem(name, &lt)
+		default:
+			panic("event: the value must be an Listener or ListenerItem instance")
+		}
+	}
+}
+
+func (em *Manager) addListenerItem(name string, li *ListenerItem) {
+	if name != Wildcard {
+		name = goodName(name)
+	}
+
+	if li.Listener == nil {
+		panic("event: the event '" + name + "' listener cannot be empty")
+	}
+
+	// exists, append it.
 	if lq, ok := em.listeners[name]; ok {
-		lq.Push(li) // append.
+		lq.Push(li)
 	} else { // first add.
 		em.listenedNames[name] = 1
 		em.listeners[name] = (&ListenerQueue{}).Push(li)
 	}
 }
+
+/*************************************************************
+ * Listener Manage: - trigger event
+ *************************************************************/
 
 // MustFire fire event by name. will panic on error
 func (em *Manager) MustFire(name string, params M) {
@@ -92,7 +122,12 @@ func (em *Manager) MustFire(name string, params M) {
 	}
 }
 
-// Fire event by name
+// Trigger alias of the method Fire()
+func (em *Manager) Trigger(name string, params M) (err error) {
+	return em.Fire(name, params)
+}
+
+// Fire trigger event by name
 func (em *Manager) Fire(name string, params M) (err error) {
 	name = goodName(name)
 
@@ -101,7 +136,6 @@ func (em *Manager) Fire(name string, params M) (err error) {
 		if params != nil {
 			e.SetData(params)
 		}
-
 		return em.FireEvent(e)
 	}
 
@@ -119,16 +153,48 @@ func (em *Manager) Fire(name string, params M) (err error) {
 }
 
 // AsyncFire async fire event by 'go' keywords
-// TODO ... 实验性的
-func (em *Manager) AsyncFire(e Event) (err error) {
+func (em *Manager) AsyncFire(e Event) {
 	go func(e Event) {
-		_ = em.FireEvent(e)
+		err := em.FireEvent(e)
+		if err != nil {
+			panic(err)
+		}
 	}(e)
-
-	return nil
 }
 
-// FireEvent fire event by given BasicEvent instance
+// AwaitFire async fire event by 'go' keywords, but will wait return result
+func (em *Manager) AwaitFire(e Event) (err error) {
+	ch := make(chan error)
+
+	go func(e Event) {
+		err := em.FireEvent(e)
+		ch <- err
+	}(e)
+
+	err = <-ch
+	return
+}
+
+// FireBatch fire multi event at once.
+// Usage:
+//	FireBatch("name1", "name2", &MyEvent{})
+func (em *Manager) FireBatch(es ...interface{}) (ers []error) {
+	var err error
+	for _, e := range es {
+		if name, ok := e.(string); ok {
+			err = em.Fire(name, nil)
+		} else if evt, ok := e.(Event); ok {
+			err = em.FireEvent(evt)
+		} // ignore invalid param.
+
+		if err != nil {
+			ers = append(ers, err)
+		}
+	}
+	return
+}
+
+// FireEvent fire event by given Event instance
 func (em *Manager) FireEvent(e Event) (err error) {
 	// find matched listeners
 	name := e.Name()
@@ -142,7 +208,7 @@ func (em *Manager) FireEvent(e Event) (err error) {
 
 	// sort by priority before call.
 	for _, li := range lq.Sort().Items() {
-		err = li.listener.Handle(e)
+		err = li.Listener.Handle(e)
 		if err != nil || e.IsAborted() {
 			return
 		}
@@ -156,7 +222,7 @@ func (em *Manager) FireEvent(e Event) (err error) {
 
 		if lq, ok := em.listeners[groupName]; ok {
 			for _, li := range lq.Sort().Items() {
-				err = li.listener.Handle(e)
+				err = li.Listener.Handle(e)
 				if err != nil || e.IsAborted() {
 					return
 				}
@@ -167,74 +233,13 @@ func (em *Manager) FireEvent(e Event) (err error) {
 	// has wildcard event listeners
 	if lq, ok := em.listeners[Wildcard]; ok {
 		for _, li := range lq.Sort().Items() {
-			err = li.listener.Handle(e)
+			err = li.Listener.Handle(e)
 			if err != nil || e.IsAborted() {
 				return
 			}
 		}
 	}
 	return
-}
-
-// HasListeners has listeners for the event name.
-func (em *Manager) HasListeners(name string) bool {
-	_, ok := em.listeners[name]
-	return ok
-}
-
-// ListenersCount get listeners number for the event name.
-func (em *Manager) ListenersCount(name string) int {
-	if lq, ok := em.listeners[name]; ok {
-		return lq.Len()
-	}
-	return 0
-}
-
-// ListenedNames get listened event names
-func (em *Manager) ListenedNames() map[string]int {
-	return em.listenedNames
-}
-
-// RemoveListener remove a given listener, you can limit event name.
-// Usage:
-//	RemoveListener("", listener)
-//	RemoveListener("name", listener) // limit event name.
-func (em *Manager) RemoveListener(name string, listener Listener) {
-	if name != "" {
-		if lq, ok := em.listeners[name]; ok {
-			lq.Remove(listener)
-
-			// delete from manager
-			if lq.IsEmpty() {
-				delete(em.listeners, name)
-				delete(em.listenedNames, name)
-			}
-		}
-		return
-	}
-
-	// name is empty. find all listener and remove matched.
-	for name, lq := range em.listeners {
-		lq.Remove(listener)
-
-		// delete from manager
-		if lq.IsEmpty() {
-			delete(em.listeners, name)
-			delete(em.listenedNames, name)
-		}
-	}
-}
-
-// RemoveListeners remove listeners by given name
-func (em *Manager) RemoveListeners(name string) {
-	_, ok := em.listenedNames[name]
-	if ok {
-		em.listeners[name].Clear()
-
-		// delete from manager
-		delete(em.listeners, name)
-		delete(em.listenedNames, name)
-	}
 }
 
 /*************************************************************
@@ -274,6 +279,67 @@ func (em *Manager) RemoveEvents() {
 /*************************************************************
  * Helper Methods
  *************************************************************/
+
+// HasListeners has listeners for the event name.
+func (em *Manager) HasListeners(name string) bool {
+	_, ok := em.listeners[name]
+	return ok
+}
+
+// ListenersCount get listeners number for the event name.
+func (em *Manager) ListenersCount(name string) int {
+	if lq, ok := em.listeners[name]; ok {
+		return lq.Len()
+	}
+	return 0
+}
+
+// ListenedNames get listened event names
+func (em *Manager) ListenedNames() map[string]int {
+	return em.listenedNames
+}
+
+// RemoveListener remove a given listener, you can limit event name.
+// Usage:
+// 	RemoveListener("", listener)
+// 	RemoveListener("name", listener) // limit event name.
+func (em *Manager) RemoveListener(name string, listener Listener) {
+	if name != "" {
+		if lq, ok := em.listeners[name]; ok {
+			lq.Remove(listener)
+
+			// delete from manager
+			if lq.IsEmpty() {
+				delete(em.listeners, name)
+				delete(em.listenedNames, name)
+			}
+		}
+		return
+	}
+
+	// name is empty. find all listener and remove matched.
+	for name, lq := range em.listeners {
+		lq.Remove(listener)
+
+		// delete from manager
+		if lq.IsEmpty() {
+			delete(em.listeners, name)
+			delete(em.listenedNames, name)
+		}
+	}
+}
+
+// RemoveListeners remove listeners by given name
+func (em *Manager) RemoveListeners(name string) {
+	_, ok := em.listenedNames[name]
+	if ok {
+		em.listeners[name].Clear()
+
+		// delete from manager
+		delete(em.listeners, name)
+		delete(em.listenedNames, name)
+	}
+}
 
 // Clear all data
 func (em *Manager) Clear() {

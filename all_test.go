@@ -4,12 +4,47 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"sync"
 	"testing"
 	"time"
 )
 
 var emptyListener = func(e Event) error {
 	return nil
+}
+
+type testListener struct {
+	userData string
+}
+
+func (l *testListener) Handle(e Event) error {
+	if ret := e.Get("result"); ret != nil {
+		str := ret.(string) + fmt.Sprintf(" -> %s(%s)", e.Name(), l.userData)
+		e.Set("result", str)
+	} else {
+		e.Set("result", fmt.Sprintf("handled: %s(%s)", e.Name(), l.userData))
+	}
+	return nil
+}
+
+type testSubscriber struct {
+	// ooo
+}
+
+func (s *testSubscriber) SubscribeEvents() map[string]interface{} {
+	return map[string]interface{}{
+		"e1": ListenerFunc(func(e Event) error {
+			e.Set("e1-key", "val1")
+			return nil
+		}),
+		"e2": ListenerItem{
+			Priority: AboveNormal,
+			Listener: ListenerFunc(func(e Event) error {
+				e.Set("e2-key", "val2")
+				return nil
+			}),
+		},
+	}
 }
 
 func TestEvent(t *testing.T) {
@@ -163,21 +198,6 @@ func TestMustFire(t *testing.T) {
 	})
 }
 
-type testListener struct {
-	userData string
-}
-
-func (l *testListener) Handle(e Event) error {
-	if ret := e.Get("result"); ret != nil {
-		str := ret.(string) + fmt.Sprintf(" -> %s(%s)", e.Name(), l.userData)
-		e.Set("result", str)
-	} else {
-		e.Set("result", fmt.Sprintf("handled: %s(%s)", e.Name(), l.userData))
-	}
-
-	return nil
-}
-
 func TestManager_FireEvent(t *testing.T) {
 	em := NewManager("test")
 
@@ -186,29 +206,12 @@ func TestManager_FireEvent(t *testing.T) {
 
 	em.On("e1", &testListener{"HI"}, Min)
 	em.On("e1", &testListener{"WEL"}, High)
-	em.On("e1", &testListener{"COM"}, BelowNormal)
+	em.AddListener("e1", &testListener{"COM"}, BelowNormal)
 
 	err := em.FireEvent(e1)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "handled: e1(WEL) -> e1(COM) -> e1(HI)", e1.Get("result"))
-
-	em.Clear()
-}
-
-func TestManager_AsyncFire(t *testing.T) {
-	em := NewManager("test")
-	em.On("e1", ListenerFunc(func(e Event) error {
-		assert.Equal(t, map[string]interface{}{"k": "v"}, e.Data())
-		return nil
-	}))
-
-	e1 := NewBasic("e1", M{"k": "v"})
-
-	err := em.AsyncFire(e1)
-
-	time.Sleep(time.Second / 5)
-	assert.NoError(t, err)
 
 	em.Clear()
 }
@@ -260,7 +263,7 @@ func TestListenGroupEvent(t *testing.T) {
 	assert.Len(t, em.ListenedNames(), 3)
 
 	buf.Reset()
-	err = em.Fire("app.evt1", nil)
+	err = em.Trigger("app.evt1", nil)
 	assert.Error(t, err)
 	assert.Equal(t, "Hi > 1 app.evt1 > 2 app.evt1", buf.String())
 
@@ -269,4 +272,53 @@ func TestListenGroupEvent(t *testing.T) {
 	// clear
 	em.Clear()
 	buf.Reset()
+}
+
+func TestManager_AsyncFire(t *testing.T) {
+	em := NewManager("test")
+	em.On("e1", ListenerFunc(func(e Event) error {
+		assert.Equal(t, map[string]interface{}{"k": "v"}, e.Data())
+		return nil
+	}))
+
+	e1 := NewBasic("e1", M{"k": "v"})
+	em.AsyncFire(e1)
+	time.Sleep(time.Second / 5)
+
+	var wg sync.WaitGroup
+	em.On("e2", ListenerFunc(func(e Event) error {
+		defer wg.Done()
+		assert.Equal(t, map[string]interface{}{"k": "v"}, e.Data())
+		return nil
+	}))
+
+	wg.Add(1)
+	em.AsyncFire(e1.SetName("e2"))
+	wg.Wait()
+
+	em.Clear()
+}
+
+func TestManager_AwaitFire(t *testing.T) {
+	em := NewManager("test")
+	em.On("e1", ListenerFunc(func(e Event) error {
+		assert.Equal(t, map[string]interface{}{"k": "v"}, e.Data())
+		e.Set("nk", "nv")
+		return nil
+	}))
+
+	e1 := NewBasic("e1", M{"k": "v"})
+	err := em.AwaitFire(e1)
+
+	assert.NoError(t, err)
+	assert.Contains(t, e1.Data(), "nk")
+	assert.Equal(t, "nv", e1.Get("nk"))
+}
+
+func TestManager_AddSubscriber(t *testing.T) {
+	em := NewManager("test")
+	em.AddSubscriber(&testSubscriber{})
+
+	ers := em.FireBatch("e1", "e2")
+	assert.Len(t, ers, 0)
 }

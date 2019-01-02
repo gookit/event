@@ -18,11 +18,24 @@ func (fn ListenerFunc) Handle(e Event) error {
 	return fn(e)
 }
 
+// Subscriber event subscriber interface.
+// you can register multi event listeners in a struct func.
+type Subscriber interface {
+	// SubscribeEvents register event listeners
+	// key: is event name
+	// value: can be Listener or ListenerItem interface
+	SubscribeEvents() map[string]interface{}
+}
+
 // ListenerItem storage a event listener and it's priority value.
 type ListenerItem struct {
-	priority int
-	listener Listener
+	Priority int
+	Listener Listener
 }
+
+/*************************************************************
+ * Listener Queue
+ *************************************************************/
 
 // ListenerQueue storage sorted Listener instance.
 type ListenerQueue struct {
@@ -77,7 +90,7 @@ func (lq *ListenerQueue) Remove(listener Listener) {
 
 	var newItems []*ListenerItem
 	for _, li := range lq.items {
-		if fmt.Sprintf("%p", li.listener) == ptrVal {
+		if fmt.Sprintf("%p", li.Listener) == ptrVal {
 			continue
 		}
 
@@ -92,6 +105,10 @@ func (lq *ListenerQueue) Clear() {
 	lq.items = lq.items[:0]
 }
 
+/*************************************************************
+ * Sorted PriorityItems
+ *************************************************************/
+
 // ByPriorityItems type. implements the sort.Interface
 type ByPriorityItems []*ListenerItem
 
@@ -102,7 +119,7 @@ func (ls ByPriorityItems) Len() int {
 
 // Less implements the sort.Interface.Less.
 func (ls ByPriorityItems) Less(i, j int) bool {
-	return ls[i].priority > ls[j].priority
+	return ls[i].Priority > ls[j].Priority
 }
 
 // Swap implements the sort.Interface.Swap.

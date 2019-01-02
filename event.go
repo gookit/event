@@ -78,12 +78,16 @@ func (e *BasicEvent) Get(key string) interface{} {
 // Add value by key
 func (e *BasicEvent) Add(key string, val interface{}) {
 	if _, ok := e.data[key]; !ok {
-		e.data[key] = val
+		e.Set(key, val)
 	}
 }
 
 // Set value by key
 func (e *BasicEvent) Set(key string, val interface{}) {
+	if e.data == nil {
+		e.data = make(map[string]interface{})
+	}
+
 	e.data[key] = val
 }
 
@@ -118,7 +122,6 @@ func (e *BasicEvent) SetData(data M) Event {
 	if data != nil {
 		e.data = data
 	}
-
 	return e
 }
 
