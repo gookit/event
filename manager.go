@@ -117,12 +117,12 @@ func (em *Manager) addListenerItem(name string, li *ListenerItem) {
  *************************************************************/
 
 // MustFire fire event by name. will panic on error
-func (em *Manager) MustFire(name string, params M) (error, Event) {
+func (em *Manager) MustFire(name string, params M) Event {
 	err, e := em.Fire(name, params)
 	if err != nil {
 		panic(err)
 	}
-	return err, e
+	return e
 }
 
 // Trigger alias of the method Fire()

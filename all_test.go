@@ -202,11 +202,11 @@ func TestMustFire(t *testing.T) {
 	On("n2", ListenerFunc(emptyListener), Min)
 
 	assert.Panics(t, func() {
-		_, _ = MustFire("n1", nil)
+		_ = MustFire("n1", nil)
 	})
 
 	assert.NotPanics(t, func() {
-		_, _ = MustFire("n2", nil)
+		_ = MustFire("n2", nil)
 	})
 }
 

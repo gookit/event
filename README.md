@@ -22,8 +22,8 @@ Go 实现的轻量级的事件管理、调度工具库
 ## 主要方法
 
 - `On(name string, listener Listener, priority ...int)` 注册事件监听
-- `Fire(name string, params M) error` 触发事件
-- `MustFire(name string, params M)`   触发事件，有错误则会panic
+- `Fire(name string, params M) (error, Event)` 触发事件
+- `MustFire(name string, params M) Event`   触发事件，有错误则会panic
 - `FireEvent(e Event) (err error)`    根据给定的事件实例，触发事件
 - `FireBatch(es ...interface{}) (ers []error)` 一次触发多个事件
 
@@ -63,19 +63,75 @@ func main() {
 - 使用匿名函数
 
 ```go
+package mypgk
 
+import (
+	"fmt"
+	"github.com/gookit/event"
+)
+
+var fnHandler = func(e event.Event) error {
+	fmt.Printf("handle event: %s\n", e.Name())
+    return nil
+}
+
+func Run() {
+    // register
+    event.On("evt1", event.ListenerFunc(fnHandler), event.High)
+}
 ```
 
 - 使用结构体
 
 ```go
+package mypgk
 
+import (
+	"fmt"
+	"github.com/gookit/event"
+)
+
+type MyListener struct {
+	// userData string
+}
+
+func (l *MyListener) Handle(e event.Event) error {
+	e.Set("result", "OK")
+	return nil
+}
 ```
 
 ## 同时注册多个事件
 
 ```go
+package mypgk
 
+import (
+	"fmt"
+	"github.com/gookit/event"
+)
+
+type MySubscriber struct {
+	// ooo
+}
+
+func (s *MySubscriber) SubscribeEvents() map[string]interface{} {
+	return map[string]interface{}{
+		"e1": event.ListenerFunc(s.e1Handler),
+		"e2": event.ListenerItem{
+			Priority: event.AboveNormal,
+			Listener: event.ListenerFunc(func(e Event) error {
+				return fmt.Errorf("an error")
+			}),
+		},
+		"e3": &MyListener{},
+	}
+}
+
+func (s *MySubscriber) e1Handler(e event.Event) error {
+	e.Set("e1-key", "val1")
+	return nil
+}
 ```
 
 ## 编写自定义事件

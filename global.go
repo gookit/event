@@ -23,7 +23,7 @@ func FireEvent(e Event) error {
 }
 
 // MustFire fire event by name. will panic on error
-func MustFire(name string, params M) (error, Event) {
+func MustFire(name string, params M) Event {
 	return DefaultEM.MustFire(name, params)
 }
 
