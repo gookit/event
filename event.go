@@ -59,13 +59,6 @@ func (e *BasicEvent) AttachTo(em ManagerFace) {
 	em.AddEvent(e)
 }
 
-func (e *BasicEvent) reset() {
-	e.name = ""
-	e.data = make(map[string]interface{})
-	e.target = nil
-	e.aborted = false
-}
-
 // Get get data by index
 func (e *BasicEvent) Get(key string) interface{} {
 	if v, ok := e.data[key]; ok {

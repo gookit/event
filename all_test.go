@@ -71,6 +71,10 @@ func TestEvent(t *testing.T) {
 
 	e.Set("arg1", "new val")
 	assert.Equal(t, "new val", e.Get("arg1"))
+
+	e1 := &BasicEvent{}
+	e1.Set("k", "v")
+	assert.Equal(t, "v", e1.Get("k"))
 }
 
 func TestAddEvent(t *testing.T) {
@@ -141,8 +145,9 @@ func TestFire(t *testing.T) {
 	On("evt1", ListenerFunc(emptyListener), High)
 	assert.True(t, HasListeners("evt1"))
 
-	err := Fire("evt1", nil)
+	err, e := Fire("evt1", nil)
 	assert.NoError(t, err)
+	assert.Equal(t, "evt1", e.Name())
 	assert.Equal(t, "event: evt1", buf.String())
 
 	NewBasic("evt2", nil).AttachTo(DefaultEM)
@@ -153,14 +158,19 @@ func TestFire(t *testing.T) {
 	}), AboveNormal)
 
 	assert.True(t, HasListeners("evt2"))
-	assert.NoError(t, Fire("evt2", M{"k": "v"}))
+	err, e = Fire("evt2", M{"k": "v"})
+	assert.NoError(t, err)
+	assert.Equal(t, "evt2", e.Name())
+	assert.Equal(t, map[string]interface{}{"k": "v"}, e.Data())
 
 	// clear all
 	DefaultEM.Clear()
 	assert.False(t, HasListeners("evt1"))
 	assert.False(t, HasListeners("evt2"))
 
-	assert.NoError(t, Fire("not-exist", nil))
+	err, e = Fire("not-exist", nil)
+	assert.NoError(t, err)
+	assert.Nil(t, e)
 }
 
 func TestFireEvent(t *testing.T) {
@@ -192,11 +202,11 @@ func TestMustFire(t *testing.T) {
 	On("n2", ListenerFunc(emptyListener), Min)
 
 	assert.Panics(t, func() {
-		MustFire("n1", nil)
+		_, _ = MustFire("n1", nil)
 	})
 
 	assert.NotPanics(t, func() {
-		MustFire("n2", nil)
+		_, _ = MustFire("n2", nil)
 	})
 }
 
@@ -211,9 +221,12 @@ func TestManager_FireEvent(t *testing.T) {
 	em.AddListener("e1", &testListener{"COM"}, BelowNormal)
 
 	err := em.FireEvent(e1)
-
 	assert.NoError(t, err)
 	assert.Equal(t, "handled: e1(WEL) -> e1(COM) -> e1(HI)", e1.Get("result"))
+
+	// not exist
+	err = em.FireEvent(e1.SetName("e2"))
+	assert.NoError(t, err)
 
 	em.Clear()
 }
@@ -241,8 +254,9 @@ func TestListenGroupEvent(t *testing.T) {
 	em.On("*", l3)
 
 	buf := e1.Get("buf").(*bytes.Buffer)
-	err := em.Fire("app.evt1", nil)
+	err, e := em.Fire("app.evt1", nil)
 	assert.NoError(t, err)
+	assert.Equal(t, e1, e)
 	assert.Equal(t, "Hi > 1 app.evt1 > 2 app.evt1 > 3 app.evt1", buf.String())
 
 	em.RemoveListener("app.*", l2)
@@ -252,7 +266,7 @@ func TestListenGroupEvent(t *testing.T) {
 	}))
 
 	buf.Reset()
-	err = em.Fire("app.evt1", nil)
+	err, e = em.Fire("app.evt1", nil)
 	assert.Error(t, err)
 	assert.Equal(t, "Hi > 1 app.evt1", buf.String())
 
@@ -265,8 +279,9 @@ func TestListenGroupEvent(t *testing.T) {
 	assert.Len(t, em.ListenedNames(), 3)
 
 	buf.Reset()
-	err = em.Trigger("app.evt1", nil)
+	err, e = em.Trigger("app.evt1", nil)
 	assert.Error(t, err)
+	assert.Equal(t, e1, e)
 	assert.Equal(t, "Hi > 1 app.evt1 > 2 app.evt1", buf.String())
 
 	em.RemoveListener("", nil)
@@ -280,17 +295,19 @@ func TestManager_AsyncFire(t *testing.T) {
 	em := NewManager("test")
 	em.On("e1", ListenerFunc(func(e Event) error {
 		assert.Equal(t, map[string]interface{}{"k": "v"}, e.Data())
+		e.Set("nk", "nv")
 		return nil
 	}))
 
 	e1 := NewBasic("e1", M{"k": "v"})
 	em.AsyncFire(e1)
-	time.Sleep(time.Second / 5)
+	time.Sleep(time.Second / 10)
+	assert.Equal(t, "nv", e1.Get("nk"))
 
 	var wg sync.WaitGroup
 	em.On("e2", ListenerFunc(func(e Event) error {
 		defer wg.Done()
-		assert.Equal(t, map[string]interface{}{"k": "v"}, e.Data())
+		assert.Equal(t, "v", e.Get("k"))
 		return nil
 	}))
 

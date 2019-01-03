@@ -3,28 +3,35 @@ package event
 import (
 	"regexp"
 	"strings"
-	"sync"
 )
 
 // Wildcard event name
 const Wildcard = "*"
+
+// regex for check good event name.
+var goodNameReg = regexp.MustCompile(`^[a-zA-Z][\w-.*]*$`)
 
 // M is short name fo map[string]...
 type M map[string]interface{}
 
 // ManagerFace event manager interface
 type ManagerFace interface {
-	// events
+	// events:
+	// add event
 	AddEvent(Event)
-	// listeners
+	// listeners:
+	// add listeners
 	On(name string, listener Listener, priority ...int)
-	Fire(name string, params M) error
+	// fire event
+	Fire(name string, params M) (error, Event)
 }
 
 // Manager event manager definition. for manage events and listeners
 type Manager struct {
 	name string
-	pool sync.Pool
+	// pool sync.Pool
+	// is an sample for new BasicEvent
+	sample *BasicEvent
 	// storage user custom Event instance. you can pre-define some Event instances.
 	events map[string]Event
 	// storage all event name and ListenerQueue map
@@ -33,20 +40,15 @@ type Manager struct {
 	listenedNames map[string]int
 }
 
-var goodNameReg = regexp.MustCompile(`^[a-zA-Z][\w-.*]*$`)
-
 // NewManager create event manager
 func NewManager(name string) *Manager {
 	em := &Manager{
-		name:          name,
-		events:        make(map[string]Event),
+		name:   name,
+		sample: &BasicEvent{},
+		events: make(map[string]Event),
+		// listeners
 		listeners:     make(map[string]*ListenerQueue),
 		listenedNames: make(map[string]int),
-	}
-
-	// set pool creator
-	em.pool.New = func() interface{} {
-		return &BasicEvent{}
 	}
 
 	return em
@@ -74,7 +76,7 @@ func (em *Manager) On(name string, listener Listener, priority ...int) {
 	em.addListenerItem(name, &ListenerItem{pv, listener})
 }
 
-// AddSubscriber add event subscriber.
+// AddSubscriber add events by subscriber interface.
 // you can register multi event listeners in a struct func.
 // more usage please see README or test.
 func (em *Manager) AddSubscriber(sbr Subscriber) {
@@ -115,50 +117,49 @@ func (em *Manager) addListenerItem(name string, li *ListenerItem) {
  *************************************************************/
 
 // MustFire fire event by name. will panic on error
-func (em *Manager) MustFire(name string, params M) {
-	err := em.Fire(name, params)
+func (em *Manager) MustFire(name string, params M) (error, Event) {
+	err, e := em.Fire(name, params)
 	if err != nil {
 		panic(err)
 	}
+	return err, e
 }
 
 // Trigger alias of the method Fire()
-func (em *Manager) Trigger(name string, params M) (err error) {
+func (em *Manager) Trigger(name string, params M) (error, Event) {
 	return em.Fire(name, params)
 }
 
 // Fire trigger event by name
-func (em *Manager) Fire(name string, params M) (err error) {
+func (em *Manager) Fire(name string, params M) (err error, e Event) {
 	name = goodName(name)
+
+	// not found listeners
+	if !em.HasListeners(name) {
+		return
+	}
 
 	// call listeners use defined Event
 	if e, ok := em.events[name]; ok {
 		if params != nil {
 			e.SetData(params)
 		}
-		return em.FireEvent(e)
+
+		err = em.FireEvent(e)
+		return err, e
 	}
 
 	// create a basic event instance
-	e := em.pool.Get().(*BasicEvent)
-	e.SetName(name)
-	e.SetData(params)
-
-	// call listeners
+	e = em.newBasicEvent(name, params)
+	// call listeners handle event
 	err = em.FireEvent(e)
-
-	e.reset()
-	em.pool.Put(e)
 	return
 }
 
 // AsyncFire async fire event by 'go' keywords
 func (em *Manager) AsyncFire(e Event) {
 	go func(e Event) {
-		err := em.FireEvent(e)
-		if err != nil {
-			panic(err)
-		}
+		_ = em.FireEvent(e)
 	}(e)
 }
 
@@ -177,12 +178,12 @@ func (em *Manager) AwaitFire(e Event) (err error) {
 
 // FireBatch fire multi event at once.
 // Usage:
-//	FireBatch("name1", "name2", &MyEvent{})
+// 	FireBatch("name1", "name2", &MyEvent{})
 func (em *Manager) FireBatch(es ...interface{}) (ers []error) {
 	var err error
 	for _, e := range es {
 		if name, ok := e.(string); ok {
-			err = em.Fire(name, nil)
+			err, _ = em.Fire(name, nil)
 		} else if evt, ok := e.(Event); ok {
 			err = em.FireEvent(evt)
 		} // ignore invalid param.
@@ -235,7 +236,7 @@ func (em *Manager) FireEvent(e Event) (err error) {
 		for _, li := range lq.Sort().Items() {
 			err = li.Listener.Handle(e)
 			if err != nil || e.IsAborted() {
-				return
+				break
 			}
 		}
 	}
@@ -279,6 +280,16 @@ func (em *Manager) RemoveEvents() {
 /*************************************************************
  * Helper Methods
  *************************************************************/
+
+// newBasicEvent create new BasicEvent by clone em.sample
+func (em *Manager) newBasicEvent(name string, data M) *BasicEvent {
+	var cp = *em.sample
+
+	cp.SetName(name)
+	cp.SetData(data)
+
+	return &cp
+}
 
 // HasListeners has listeners for the event name.
 func (em *Manager) HasListeners(name string) bool {
