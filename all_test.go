@@ -33,10 +33,7 @@ type testSubscriber struct {
 
 func (s *testSubscriber) SubscribeEvents() map[string]interface{} {
 	return map[string]interface{}{
-		"e1": ListenerFunc(func(e Event) error {
-			e.Set("e1-key", "val1")
-			return nil
-		}),
+		"e1": ListenerFunc(s.e1Handler),
 		"e2": ListenerItem{
 			Priority: AboveNormal,
 			Listener: ListenerFunc(func(e Event) error {
@@ -45,6 +42,11 @@ func (s *testSubscriber) SubscribeEvents() map[string]interface{} {
 		},
 		"e3": &testListener{},
 	}
+}
+
+func (s *testSubscriber) e1Handler(e Event) error {
+	e.Set("e1-key", "val1")
+	return nil
 }
 
 func TestEvent(t *testing.T) {
@@ -326,6 +328,10 @@ func (s testSubscriber2) SubscribeEvents() map[string]interface{} {
 func TestManager_AddSubscriber(t *testing.T) {
 	em := NewManager("test")
 	em.AddSubscriber(&testSubscriber{})
+
+	assert.True(t, em.HasListeners("e1"))
+	assert.True(t, em.HasListeners("e2"))
+	assert.True(t, em.HasListeners("e3"))
 
 	ers := em.FireBatch("e1", NewBasic("e2", nil))
 	assert.Len(t, ers, 1)

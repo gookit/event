@@ -7,7 +7,7 @@ var DefaultEM = NewManager("default")
  * Listener
  *************************************************************/
 
-// On register a event and listener
+// On register a listener to the event
 func On(name string, listener Listener, priority ...int) {
 	DefaultEM.On(name, listener, priority...)
 }

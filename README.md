@@ -58,9 +58,64 @@ func main() {
 }
 ```
 
+## 编写事件监听
+
+- 使用匿名函数
+
+```go
+
+```
+
+- 使用结构体
+
+```go
+
+```
+
 ## 同时注册多个事件
 
-TODO
+```go
+
+```
+
+## 编写自定义事件
+
+```go
+package mypgk 
+
+import (
+	"fmt"
+	"github.com/gookit/event"
+)
+
+type MyEvent struct{
+	event.BasicEvent
+	customData string
+}
+
+func (e *MyEvent) CustomData() string {
+    return e.customData
+}
+```
+
+使用：
+
+```go
+e := &MyEvent{customData: "hello"}
+e.SetName("e1")
+event.AddEvent(e)
+
+// add listener
+event.On("e1", event.ListenerFunc(func(e event.Event) error {
+   fmt.Printf("custom Data: %s\n", e.(*MyEvent).CustomData())
+   return nil
+}))
+
+// trigger
+event.Fire("e1", nil)
+// OR
+// event.FireEvent(e)
+```
 
 ## LICENSE
 
