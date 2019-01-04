@@ -9,9 +9,9 @@ Go 实现的轻量级的事件管理、调度工具库
 
 - 支持自定义定义事件对象
 - 支持对一个事件添加多个监听器
-- 支持设置监听器的优先级，优先级越高越先触发
+- 支持设置事件监听器的优先级，优先级越高越先触发
 - 支持根据事件名称前缀 `PREFIX.` 来进行一组事件监听.
-  - 注册`app.*` 事件，触发 `app.run` `app.end` 时，都将同时会触发 `app.*` 事件
+  - 注册`app.*` 事件的监听，触发 `app.run` `app.end` 时，都将同时会触发 `app.*` 事件
 - 支持使用通配符 `*` 来监听全部事件的触发
 - 完善的单元测试，单元覆盖率 `> 95%`
 
@@ -22,7 +22,7 @@ Go 实现的轻量级的事件管理、调度工具库
 ## 主要方法
 
 - `On(name string, listener Listener, priority ...int)` 注册事件监听
-- `AddSubscriber(sbr Subscriber)`  订阅，支持注册多个事件
+- `AddSubscriber(sbr Subscriber)`  订阅，支持注册多个事件监听
 - `Fire(name string, params M) (error, Event)` 触发事件
 - `MustFire(name string, params M) Event`   触发事件，有错误则会panic
 - `FireEvent(e Event) (err error)`    根据给定的事件实例，触发事件
@@ -104,7 +104,7 @@ func (l *MyListener) Handle(e event.Event) error {
 }
 ```
 
-## 同时注册多个事件
+## 同时注册多个事件监听
 
 > 实现接口 `event.Subscriber`
 
