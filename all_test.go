@@ -31,7 +31,7 @@ type testSubscriber struct {
 	// ooo
 }
 
-func (s *testSubscriber) SubscribeEvents() map[string]interface{} {
+func (s *testSubscriber) SubscribedEvents() map[string]interface{} {
 	return map[string]interface{}{
 		"e1": ListenerFunc(s.e1Handler),
 		"e2": ListenerItem{
@@ -336,7 +336,7 @@ func TestManager_AwaitFire(t *testing.T) {
 
 type testSubscriber2 struct{}
 
-func (s testSubscriber2) SubscribeEvents() map[string]interface{} {
+func (s testSubscriber2) SubscribedEvents() map[string]interface{} {
 	return map[string]interface{}{
 		"e1": "invalid",
 	}

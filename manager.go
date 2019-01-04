@@ -80,7 +80,7 @@ func (em *Manager) On(name string, listener Listener, priority ...int) {
 // you can register multi event listeners in a struct func.
 // more usage please see README or test.
 func (em *Manager) AddSubscriber(sbr Subscriber) {
-	for name, listener := range sbr.SubscribeEvents() {
+	for name, listener := range sbr.SubscribedEvents() {
 		switch lt := listener.(type) {
 		case Listener:
 			em.On(name, lt)

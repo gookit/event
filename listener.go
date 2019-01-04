@@ -21,10 +21,10 @@ func (fn ListenerFunc) Handle(e Event) error {
 // Subscriber event subscriber interface.
 // you can register multi event listeners in a struct func.
 type Subscriber interface {
-	// SubscribeEvents register event listeners
+	// SubscribedEvents register event listeners
 	// key: is event name
 	// value: can be Listener or ListenerItem interface
-	SubscribeEvents() map[string]interface{}
+	SubscribedEvents() map[string]interface{}
 }
 
 // ListenerItem storage a event listener and it's priority value.

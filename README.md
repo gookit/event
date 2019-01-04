@@ -22,6 +22,7 @@ Go 实现的轻量级的事件管理、调度工具库
 ## 主要方法
 
 - `On(name string, listener Listener, priority ...int)` 注册事件监听
+- `AddSubscriber(sbr Subscriber)`  订阅，支持注册多个事件
 - `Fire(name string, params M) (error, Event)` 触发事件
 - `MustFire(name string, params M) Event`   触发事件，有错误则会panic
 - `FireEvent(e Event) (err error)`    根据给定的事件实例，触发事件
@@ -81,7 +82,9 @@ func Run() {
 }
 ```
 
-- 使用结构体
+- 使用结构体方法
+
+> 实现接口 `event.Listener`
 
 ```go
 package mypgk
@@ -103,6 +106,8 @@ func (l *MyListener) Handle(e event.Event) error {
 
 ## 同时注册多个事件
 
+> 实现接口 `event.Subscriber`
+
 ```go
 package mypgk
 
@@ -115,7 +120,7 @@ type MySubscriber struct {
 	// ooo
 }
 
-func (s *MySubscriber) SubscribeEvents() map[string]interface{} {
+func (s *MySubscriber) SubscribedEvents() map[string]interface{} {
 	return map[string]interface{}{
 		"e1": event.ListenerFunc(s.e1Handler),
 		"e2": event.ListenerItem{
