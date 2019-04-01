@@ -3,10 +3,11 @@ package event
 import (
 	"bytes"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var emptyListener = func(e Event) error {
@@ -129,6 +130,9 @@ func TestOn(t *testing.T) {
 	assert.Equal(t, 0, DefaultEM.ListenersCount("not-exist"))
 	assert.True(t, HasListeners("n1"))
 	assert.False(t, HasListeners("name"))
+
+	assert.NotEmpty(t, DefaultEM.Listeners())
+	assert.NotEmpty(t, DefaultEM.ListenersByName("n1"))
 
 	DefaultEM.RemoveListeners("n1")
 	assert.False(t, HasListeners("n1"))

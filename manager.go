@@ -293,8 +293,18 @@ func (em *Manager) newBasicEvent(name string, data M) *BasicEvent {
 
 // HasListeners has listeners for the event name.
 func (em *Manager) HasListeners(name string) bool {
-	_, ok := em.listeners[name]
+	_, ok := em.listenedNames[name]
 	return ok
+}
+
+// Listeners get all listeners
+func (em *Manager) Listeners() map[string]*ListenerQueue {
+	return em.listeners
+}
+
+// ListenersByName get listeners by given event name
+func (em *Manager) ListenersByName(name string) *ListenerQueue {
+	return em.listeners[name]
 }
 
 // ListenersCount get listeners number for the event name.
