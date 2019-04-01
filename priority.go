@@ -1,6 +1,6 @@
 package event
 
-// there are some default priority constants
+// There are some default priority constants
 const (
 	Min         = -300
 	Low         = -200

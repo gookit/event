@@ -197,21 +197,19 @@ func (em *Manager) FireBatch(es ...interface{}) (ers []error) {
 
 // FireEvent fire event by given Event instance
 func (em *Manager) FireEvent(e Event) (err error) {
-	// find matched listeners
-	name := e.Name()
-	lq, ok := em.listeners[name]
-	if !ok {
-		return
-	}
-
 	// ensure aborted is false.
 	e.Abort(false)
+	name := e.Name()
 
-	// sort by priority before call.
-	for _, li := range lq.Sort().Items() {
-		err = li.Listener.Handle(e)
-		if err != nil || e.IsAborted() {
-			return
+	// find matched listeners
+	lq, ok := em.listeners[name]
+	if ok {
+		// sort by priority before call.
+		for _, li := range lq.Sort().Items() {
+			err = li.Listener.Handle(e)
+			if err != nil || e.IsAborted() {
+				return
+			}
 		}
 	}
 
