@@ -11,7 +11,7 @@ const Wildcard = "*"
 // regex for check good event name.
 var goodNameReg = regexp.MustCompile(`^[a-zA-Z][\w-.*]*$`)
 
-// M is short name fo map[string]...
+// M is short name for map[string]...
 type M map[string]interface{}
 
 // ManagerFace event manager interface
