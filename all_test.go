@@ -197,6 +197,7 @@ func TestFireEvent(t *testing.T) {
 	err := FireEvent(evt1)
 	assert.NoError(t, err)
 	assert.Equal(t, "event: evt1, params: n=inhere", buf.String())
+	buf.Reset()
 }
 
 func TestMustFire(t *testing.T) {
@@ -233,6 +234,63 @@ func TestManager_FireEvent(t *testing.T) {
 	assert.NoError(t, err)
 
 	em.Clear()
+}
+
+func TestManager_FireEvent2(t *testing.T) {
+	buf := new(bytes.Buffer)
+	mgr := NewManager("test")
+
+	evt1 := NewBasic("evt1", nil).Fill(nil, M{"n": "inhere"})
+	mgr.AddEvent(evt1)
+
+	assert.True(t, mgr.HasEvent("evt1"))
+	assert.False(t, mgr.HasEvent("not-exist"))
+
+	mgr.On("evt1", ListenerFunc(func(e Event) error {
+		_, _ = fmt.Fprintf(buf, "event: %s, params: n=%s", e.Name(), e.Get("n"))
+		return nil
+	}), Normal)
+
+	assert.True(t, mgr.HasListeners("evt1"))
+	assert.False(t, mgr.HasListeners("not-exist"))
+
+	err := mgr.FireEvent(evt1)
+	assert.NoError(t, err)
+	assert.Equal(t, "event: evt1, params: n=inhere", buf.String())
+	buf.Reset()
+
+	mgr.On(Wildcard, ListenerFunc(func(e Event) error {
+		buf.WriteString("|Wildcard handler")
+		return nil
+	}))
+
+	err = mgr.FireEvent(evt1)
+	assert.NoError(t, err)
+	assert.Equal(t, "event: evt1, params: n=inhere|Wildcard handler", buf.String())
+}
+
+func TestManager_Fire_WithWildcard(t *testing.T) {
+	buf := new(bytes.Buffer)
+	mgr := NewManager("test")
+
+	const Event2FurcasTicketCreate  = "kapal.furcas.ticket.create"
+
+	handler := ListenerFunc(func(e Event) error {
+		_, _ = fmt.Fprintf(buf, "%s-%s|", e.Name(), e.Get("user"))
+		return nil
+	})
+
+	mgr.On("*", handler)
+	mgr.On("kapal.furcas.ticket.*", handler)
+	mgr.On(Event2FurcasTicketCreate, handler)
+
+	err, _ := mgr.Fire(Event2FurcasTicketCreate, M{"user": "inhere"})
+	assert.NoError(t, err)
+	assert.Equal(
+		t,
+		"kapal.furcas.ticket.create-inhere|kapal.furcas.ticket.create-inhere|kapal.furcas.ticket.create-inhere|",
+		buf.String(),
+	)
 }
 
 func TestListenGroupEvent(t *testing.T) {
