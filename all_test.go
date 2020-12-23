@@ -280,11 +280,22 @@ func TestManager_Fire_WithWildcard(t *testing.T) {
 		return nil
 	})
 
-	mgr.On("*", handler)
 	mgr.On("kapal.furcas.ticket.*", handler)
 	mgr.On(Event2FurcasTicketCreate, handler)
 
 	err, _ := mgr.Fire(Event2FurcasTicketCreate, M{"user": "inhere"})
+	assert.NoError(t, err)
+	assert.Equal(
+		t,
+		"kapal.furcas.ticket.create-inhere|kapal.furcas.ticket.create-inhere|",
+		buf.String(),
+	)
+	buf.Reset()
+
+	// add Wildcard listen
+	mgr.On("*", handler)
+
+	err, _ = mgr.Fire(Event2FurcasTicketCreate, M{"user": "inhere"})
 	assert.NoError(t, err)
 	assert.Equal(
 		t,
