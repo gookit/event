@@ -12,6 +12,21 @@ func On(name string, listener Listener, priority ...int) {
 	DefaultEM.On(name, listener, priority...)
 }
 
+// alias of Fire
+func Trigger(name string, params M) (error, Event) {
+	return Fire(name, params)
+}
+
+// alias of FireEvent
+func TriggerEvent(e Event) error {
+	return FireEvent(e)
+}
+
+// alias of MustFire
+func MustTrigger(name string, params M) Event {
+	return MustFire(name, params)
+}
+
 // Fire fire listeners by name.
 func Fire(name string, params M) (error, Event) {
 	return DefaultEM.Fire(name, params)
