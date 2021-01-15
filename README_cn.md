@@ -65,7 +65,7 @@ func main() {
 
 ## 编写事件监听
 
-- 使用匿名函数
+### 使用匿名函数
 
 ```go
 package mypgk
@@ -87,7 +87,18 @@ func Run() {
 }
 ```
 
-- 使用结构体方法
+### 使用结构体方法
+
+**interface:**
+
+```go
+// Listener interface
+type Listener interface {
+	Handle(e Event) error
+}
+```
+
+**示例:**
 
 > 实现接口 `event.Listener`
 
@@ -110,7 +121,7 @@ func (l *MyListener) Handle(e event.Event) error {
 }
 ```
 
-## 同时注册多个事件监听
+### 同时注册多个事件监听
 
 **interface:**
 
@@ -201,7 +212,7 @@ func (e *MyEvent) CustomData() string {
 }
 ```
 
-使用：
+**使用：**
 
 ```go
 e := &MyEvent{customData: "hello"}

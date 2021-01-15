@@ -89,6 +89,17 @@ func Run() {
 
 ### Using the structure method
 
+**interface:**
+
+```go
+// Listener interface
+type Listener interface {
+	Handle(e Event) error
+}
+```
+
+**example:**
+
 > Implementation interface `event.Listener`
 
 ```go
