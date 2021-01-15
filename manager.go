@@ -63,6 +63,11 @@ func (em *Manager) AddListener(name string, listener Listener, priority ...int) 
 	em.On(name, listener, priority...)
 }
 
+// Listen alias of the On()
+func (em *Manager) Listen(name string, listener Listener, priority ...int) {
+	em.On(name, listener, priority...)
+}
+
 // On register a event handler/listener. can setting priority.
 // Usage:
 // 	On("evt0", listener)
@@ -74,6 +79,11 @@ func (em *Manager) On(name string, listener Listener, priority ...int) {
 	}
 
 	em.addListenerItem(name, &ListenerItem{pv, listener})
+}
+
+// Subscribe alias of the AddSubscriber()
+func (em *Manager) Subscribe(sbr Subscriber) {
+	em.AddSubscriber(sbr)
 }
 
 // AddSubscriber add events by subscriber interface.

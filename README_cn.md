@@ -23,12 +23,13 @@ Go 实现的轻量级的事件管理、调度工具库
 
 ## 主要方法
 
-- `On(name string, listener Listener, priority ...int)` 注册事件监听
-- `AddSubscriber(sbr Subscriber)`  订阅，支持注册多个事件监听
-- `Fire(name string, params M) (error, Event)` 触发事件
-- `MustFire(name string, params M) Event`   触发事件，有错误则会panic
+- `On/Listen(name string, listener Listener, priority ...int)` 注册事件监听
+- `Subscribe/AddSubscriber(sbr Subscriber)`  订阅，支持注册多个事件监听
+- `Trigger/Fire(name string, params M) (error, Event)` 触发事件
+- `MustTrigger/MustFire(name string, params M) Event`   触发事件，有错误则会panic
 - `FireEvent(e Event) (err error)`    根据给定的事件实例，触发事件
 - `FireBatch(es ...interface{}) (ers []error)` 一次触发多个事件
+- `AsyncFire(e Event)`   Async fire event by 'go' keywords
 
 ## 快速使用
 
@@ -111,6 +112,21 @@ func (l *MyListener) Handle(e event.Event) error {
 
 ## 同时注册多个事件监听
 
+**interface:**
+
+```go
+// Subscriber event subscriber interface.
+// you can register multi event listeners in a struct func.
+type Subscriber interface {
+	// SubscribedEvents register event listeners
+	// key: is event name
+	// value: can be Listener or ListenerItem interface
+	SubscribedEvents() map[string]interface{}
+}
+```
+
+**示例**
+
 > 实现接口 `event.Subscriber`
 
 ```go
@@ -146,6 +162,25 @@ func (s *MySubscriber) e1Handler(e event.Event) error {
 ```
 
 ## 编写自定义事件
+
+**interface:**
+
+```go
+// Event interface
+type Event interface {
+	Name() string
+	// Target() interface{}
+	Get(key string) interface{}
+	Add(key string, val interface{})
+	Set(key string, val interface{})
+	Data() map[string]interface{}
+	SetData(M) Event
+	Abort(bool)
+	IsAborted() bool
+}
+```
+
+**示例**
 
 ```go
 package mypgk 

@@ -23,12 +23,13 @@ Lightweight event management, dispatch tool library implemented by Go
 
 ## Main method
 
-- `On(name string, listener Listener, priority ...int)` Register event listener
-- `AddSubscriber(sbr Subscriber)`  Subscribe to support registration of multiple event listeners
-- `Fire(name string, params M) (error, Event)` Trigger event
-- `MustFire(name string, params M) Event`   Trigger event, there will be panic if there is an error
+- `On/Listen(name string, listener Listener, priority ...int)` Register event listener
+- `Subscribe/AddSubscriber(sbr Subscriber)`  Subscribe to support registration of multiple event listeners
+- `Trigger/Fire(name string, params M) (error, Event)` Trigger event
+- `MustTrigger/MustFire(name string, params M) Event`   Trigger event, there will be panic if there is an error
 - `FireEvent(e Event) (err error)`    Trigger an event based on a given event instance
 - `FireBatch(es ...interface{}) (ers []error)` Trigger multiple events at once
+- `AsyncFire(e Event)`   Async fire event by 'go' keywords
 
 ## Quick start
 
@@ -110,6 +111,21 @@ func (l *MyListener) Handle(e event.Event) error {
 
 ## Register multiple event listeners
 
+**interface:**
+
+```go
+// Subscriber event subscriber interface.
+// you can register multi event listeners in a struct func.
+type Subscriber interface {
+	// SubscribedEvents register event listeners
+	// key: is event name
+	// value: can be Listener or ListenerItem interface
+	SubscribedEvents() map[string]interface{}
+}
+```
+
+**example**
+
 > Implementation interface `event.Subscriber`
 
 ```go
@@ -145,6 +161,25 @@ func (s *MySubscriber) e1Handler(e event.Event) error {
 ```
 
 ## Write custom events
+
+**interface:**
+
+```go
+// Event interface
+type Event interface {
+	Name() string
+	// Target() interface{}
+	Get(key string) interface{}
+	Add(key string, val interface{})
+	Set(key string, val interface{})
+	Data() map[string]interface{}
+	SetData(M) Event
+	Abort(bool)
+	IsAborted() bool
+}
+```
+
+**examples:**
 
 ```go
 package mypgk 

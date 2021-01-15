@@ -273,7 +273,7 @@ func TestManager_Fire_WithWildcard(t *testing.T) {
 	buf := new(bytes.Buffer)
 	mgr := NewManager("test")
 
-	const Event2FurcasTicketCreate  = "kapal.furcas.ticket.create"
+	const Event2FurcasTicketCreate = "kapal.furcas.ticket.create"
 
 	handler := ListenerFunc(func(e Event) error {
 		_, _ = fmt.Fprintf(buf, "%s-%s|", e.Name(), e.Get("user"))

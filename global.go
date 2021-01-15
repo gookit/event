@@ -12,19 +12,34 @@ func On(name string, listener Listener, priority ...int) {
 	DefaultEM.On(name, listener, priority...)
 }
 
-// alias of Fire
+// Listen register a listener to the event
+func Listen(name string, listener Listener, priority ...int) {
+	DefaultEM.Listen(name, listener, priority...)
+}
+
+// Subscribe register a listener to the event
+func Subscribe(sbr Subscriber) {
+	DefaultEM.Subscribe(sbr)
+}
+
+// Trigger alias of Fire
 func Trigger(name string, params M) (error, Event) {
-	return Fire(name, params)
+	return DefaultEM.Fire(name, params)
 }
 
-// alias of FireEvent
+// AsyncFire async fire event by 'go' keywords
+func AsyncFire(e Event) {
+	DefaultEM.AsyncFire(e)
+}
+
+// TriggerEvent alias of FireEvent
 func TriggerEvent(e Event) error {
-	return FireEvent(e)
+	return DefaultEM.FireEvent(e)
 }
 
-// alias of MustFire
+// MustTrigger alias of MustFire
 func MustTrigger(name string, params M) Event {
-	return MustFire(name, params)
+	return DefaultEM.MustFire(name, params)
 }
 
 // Fire fire listeners by name.
