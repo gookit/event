@@ -22,9 +22,9 @@ func Subscribe(sbr Subscriber) {
 	DefaultEM.Subscribe(sbr)
 }
 
-// Trigger alias of Fire
-func Trigger(name string, params M) (error, Event) {
-	return DefaultEM.Fire(name, params)
+// AddSubscriber register a listener to the event
+func AddSubscriber(sbr Subscriber) {
+	DefaultEM.AddSubscriber(sbr)
 }
 
 // AsyncFire async fire event by 'go' keywords
@@ -32,14 +32,9 @@ func AsyncFire(e Event) {
 	DefaultEM.AsyncFire(e)
 }
 
-// TriggerEvent alias of FireEvent
-func TriggerEvent(e Event) error {
-	return DefaultEM.FireEvent(e)
-}
-
-// MustTrigger alias of MustFire
-func MustTrigger(name string, params M) Event {
-	return DefaultEM.MustFire(name, params)
+// Trigger alias of Fire
+func Trigger(name string, params M) (error, Event) {
+	return DefaultEM.Fire(name, params)
 }
 
 // Fire fire listeners by name.
@@ -52,14 +47,34 @@ func FireEvent(e Event) error {
 	return DefaultEM.FireEvent(e)
 }
 
+// TriggerEvent alias of FireEvent
+func TriggerEvent(e Event) error {
+	return DefaultEM.FireEvent(e)
+}
+
 // MustFire fire event by name. will panic on error
 func MustFire(name string, params M) Event {
 	return DefaultEM.MustFire(name, params)
 }
 
+// MustTrigger alias of MustFire
+func MustTrigger(name string, params M) Event {
+	return DefaultEM.MustFire(name, params)
+}
+
+// FireBatch fire multi event at once.
+func FireBatch(es ...interface{}) []error {
+	return DefaultEM.FireBatch(es...)
+}
+
 // HasListeners has listeners for the event name.
 func HasListeners(name string) bool {
 	return DefaultEM.HasListeners(name)
+}
+
+// Reset the default event manager
+func Reset() {
+	DefaultEM.Clear()
 }
 
 /*************************************************************

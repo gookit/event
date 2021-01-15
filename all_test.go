@@ -28,28 +28,6 @@ func (l *testListener) Handle(e Event) error {
 	return nil
 }
 
-type testSubscriber struct {
-	// ooo
-}
-
-func (s *testSubscriber) SubscribedEvents() map[string]interface{} {
-	return map[string]interface{}{
-		"e1": ListenerFunc(s.e1Handler),
-		"e2": ListenerItem{
-			Priority: AboveNormal,
-			Listener: ListenerFunc(func(e Event) error {
-				return fmt.Errorf("an error")
-			}),
-		},
-		"e3": &testListener{},
-	}
-}
-
-func (s *testSubscriber) e1Handler(e Event) error {
-	e.Set("e1-key", "val1")
-	return nil
-}
-
 func TestEvent(t *testing.T) {
 	e := &BasicEvent{}
 	e.SetName("n1")
@@ -79,6 +57,7 @@ func TestEvent(t *testing.T) {
 }
 
 func TestAddEvent(t *testing.T) {
+	defer Reset()
 	DefaultEM.RemoveEvents()
 
 	// no name
@@ -115,6 +94,8 @@ func TestAddEvent(t *testing.T) {
 }
 
 func TestOn(t *testing.T) {
+	defer Reset()
+
 	assert.Panics(t, func() {
 		On("", ListenerFunc(emptyListener), 0)
 	})
@@ -162,13 +143,13 @@ func TestFire(t *testing.T) {
 	}), AboveNormal)
 
 	assert.True(t, HasListeners("evt2"))
-	err, e = Fire("evt2", M{"k": "v"})
+	err, e = Trigger("evt2", M{"k": "v"})
 	assert.NoError(t, err)
 	assert.Equal(t, "evt2", e.Name())
 	assert.Equal(t, map[string]interface{}{"k": "v"}, e.Data())
 
 	// clear all
-	DefaultEM.Clear()
+	Reset()
 	assert.False(t, HasListeners("evt1"))
 	assert.False(t, HasListeners("evt2"))
 
@@ -178,6 +159,7 @@ func TestFire(t *testing.T) {
 }
 
 func TestFireEvent(t *testing.T) {
+	defer Reset()
 	buf := new(bytes.Buffer)
 
 	evt1 := NewBasic("evt1", nil).Fill(nil, M{"n": "inhere"})
@@ -186,7 +168,7 @@ func TestFireEvent(t *testing.T) {
 	assert.True(t, HasEvent("evt1"))
 	assert.False(t, HasEvent("not-exist"))
 
-	On("evt1", ListenerFunc(func(e Event) error {
+	Listen("evt1", ListenerFunc(func(e Event) error {
 		_, _ = fmt.Fprintf(buf, "event: %s, params: n=%s", e.Name(), e.Get("n"))
 		return nil
 	}), Normal)
@@ -198,9 +180,16 @@ func TestFireEvent(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "event: evt1, params: n=inhere", buf.String())
 	buf.Reset()
+
+	err = TriggerEvent(evt1)
+	assert.NoError(t, err)
+	assert.Equal(t, "event: evt1, params: n=inhere", buf.String())
+	buf.Reset()
 }
 
 func TestMustFire(t *testing.T) {
+	defer Reset()
+
 	On("n1", ListenerFunc(func(e Event) error {
 		return fmt.Errorf("an error")
 	}), Max)
@@ -295,7 +284,7 @@ func TestManager_Fire_WithWildcard(t *testing.T) {
 	// add Wildcard listen
 	mgr.On("*", handler)
 
-	err, _ = mgr.Fire(Event2FurcasTicketCreate, M{"user": "inhere"})
+	err, _ = mgr.Trigger(Event2FurcasTicketCreate, M{"user": "inhere"})
 	assert.NoError(t, err)
 	assert.Equal(
 		t,
@@ -407,12 +396,51 @@ func TestManager_AwaitFire(t *testing.T) {
 	assert.Equal(t, "nv", e1.Get("nk"))
 }
 
+type testSubscriber struct {
+	// ooo
+}
+
+func (s *testSubscriber) SubscribedEvents() map[string]interface{} {
+	return map[string]interface{}{
+		"e1": ListenerFunc(s.e1Handler),
+		"e2": ListenerItem{
+			Priority: AboveNormal,
+			Listener: ListenerFunc(func(e Event) error {
+				return fmt.Errorf("an error")
+			}),
+		},
+		"e3": &testListener{},
+	}
+}
+
+func (s *testSubscriber) e1Handler(e Event) error {
+	e.Set("e1-key", "val1")
+	return nil
+}
+
 type testSubscriber2 struct{}
 
 func (s testSubscriber2) SubscribedEvents() map[string]interface{} {
 	return map[string]interface{}{
 		"e1": "invalid",
 	}
+}
+
+func TestAddSubscriber(t *testing.T) {
+	AddSubscriber(&testSubscriber{})
+
+	assert.True(t, HasListeners("e1"))
+	assert.True(t, HasListeners("e2"))
+	assert.True(t, HasListeners("e3"))
+
+	ers := FireBatch("e1", NewBasic("e2", nil))
+	assert.Len(t, ers, 1)
+
+	assert.Panics(t, func() {
+		AddSubscriber(testSubscriber2{})
+	})
+
+	Reset()
 }
 
 func TestManager_AddSubscriber(t *testing.T) {

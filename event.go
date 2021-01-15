@@ -10,8 +10,8 @@ type Event interface {
 	Add(key string, val interface{})
 	Set(key string, val interface{})
 	Data() map[string]interface{}
-	SetData(M) Event
 	Abort(bool)
+	SetData(M) Event
 	IsAborted() bool
 }
 

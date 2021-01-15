@@ -126,6 +126,11 @@ func (em *Manager) addListenerItem(name string, li *ListenerItem) {
  * Listener Manage: - trigger event
  *************************************************************/
 
+// Trigger alias of the method MustFire()
+func (em *Manager) MustTrigger(name string, params M) Event {
+	return em.MustFire(name, params)
+}
+
 // MustFire fire event by name. will panic on error
 func (em *Manager) MustFire(name string, params M) Event {
 	err, e := em.Fire(name, params)
@@ -370,8 +375,13 @@ func (em *Manager) RemoveListeners(name string) {
 	}
 }
 
-// Clear all data
+// Clear alias of the Reset()
 func (em *Manager) Clear() {
+	em.Reset()
+}
+
+// Reset the manager, clear all data.
+func (em *Manager) Reset() {
 	// clear all listeners
 	for _, lq := range em.listeners {
 		lq.Clear()
