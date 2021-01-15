@@ -200,7 +200,7 @@ func TestMustFire(t *testing.T) {
 	})
 
 	assert.NotPanics(t, func() {
-		_ = MustFire("n2", nil)
+		_ = MustTrigger("n2", nil)
 	})
 }
 
@@ -437,7 +437,7 @@ func TestAddSubscriber(t *testing.T) {
 	assert.Len(t, ers, 1)
 
 	assert.Panics(t, func() {
-		AddSubscriber(testSubscriber2{})
+		Subscribe(testSubscriber2{})
 	})
 
 	Reset()

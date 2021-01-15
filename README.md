@@ -6,8 +6,6 @@
 [![Coverage Status](https://coveralls.io/repos/github/gookit/event/badge.svg?branch=master)](https://coveralls.io/github/gookit/event?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gookit/event)](https://goreportcard.com/report/github.com/gookit/event)
 
-> **[中文说明](README_cn.md)**
-
 Lightweight event management, dispatch tool library implemented by Go
 
 - Support for custom definition event objects
@@ -17,6 +15,10 @@ Lightweight event management, dispatch tool library implemented by Go
   - add `app.*` event listen, trigger `app.run` `app.end`, Both will trigger the `app.*` event at the same time
 - Support for using the wildcard `*` to listen for triggers for all events
 - Complete unit testing, unit coverage `> 95%`
+
+## [中文说明](README.zh-CN.md)
+
+中文说明请看 **[README.zh-CN](README.zh-CN.md)**
 
 ## GoDoc
 
@@ -236,6 +238,7 @@ event.Fire("e1", nil)
 - [gookit/ini](https://github.com/gookit/ini) Go config management, use INI files
 - [gookit/rux](https://github.com/gookit/rux) Simple and fast request router for golang HTTP 
 - [gookit/gcli](https://github.com/gookit/gcli) build CLI application, tool library, running CLI commands
+- [gookit/slog](https://github.com/gookit/slog) Lightweight, extensible, configurable logging library written in Go
 - [gookit/event](https://github.com/gookit/event) Lightweight event manager and dispatcher implements by Go
 - [gookit/cache](https://github.com/gookit/cache) Generic cache use and cache manager for golang. support File, Memory, Redis, Memcached.
 - [gookit/config](https://github.com/gookit/config) Go config management. support JSON, YAML, TOML, INI, HCL, ENV and Flags
