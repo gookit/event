@@ -7,11 +7,11 @@ type Event interface {
 	Name() string
 	// Target() interface{}
 	Get(key string) interface{}
-	Add(key string, val interface{})
 	Set(key string, val interface{})
+	Add(key string, val interface{})
 	Data() map[string]interface{}
-	Abort(bool)
 	SetData(M) Event
+	Abort(bool)
 	IsAborted() bool
 }
 
