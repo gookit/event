@@ -149,9 +149,12 @@ func (em *Manager) Trigger(name string, params M) (error, Event) {
 func (em *Manager) Fire(name string, params M) (err error, e Event) {
 	name = goodName(name)
 
-	// not found listeners
-	if !em.HasListeners(name) {
-		return
+	// not found listeners.
+	if false == em.HasListeners(name) {
+		// NOTICE: must check the '*' global listeners
+		if name != Wildcard && false == em.HasListeners(Wildcard) {
+			return
+		}
 	}
 
 	// call listeners use defined Event
