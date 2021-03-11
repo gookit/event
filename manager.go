@@ -30,8 +30,8 @@ type ManagerFace interface {
 // Manager event manager definition. for manage events and listeners
 type Manager struct {
 	sync.Mutex
-	// enable lock on fire event.
-	enableLock bool
+	// EnableLock enable lock on fire event.
+	EnableLock bool
 	// name of the manager
 	name string
 	// pool sync.Pool
@@ -57,16 +57,6 @@ func NewManager(name string) *Manager {
 	}
 
 	return em
-}
-
-// EnableLock of the manager.
-func (em *Manager) EnableLock() {
-	em.enableLock = true
-}
-
-// DisableLock of the manager.
-func (em *Manager) DisableLock() {
-	em.enableLock = false
 }
 
 /*************************************************************
@@ -165,16 +155,9 @@ func (em *Manager) Fire(name string, params M) (err error, e Event) {
 	name = goodName(name)
 
 	// not found listeners.
-	if false == em.HasListeners(name) {
-		// NOTICE: must check the '*' global listeners
-		if name != Wildcard && false == em.HasListeners(Wildcard) {
-			return
-		}
-	}
-
-	if em.enableLock {
-		em.Lock()
-		defer em.Unlock()
+	// NOTICE: must check the '*' global listeners
+	if false == em.HasListeners(name) && false == em.HasListeners(Wildcard) {
+		return
 	}
 
 	// call listeners use defined Event
@@ -235,6 +218,11 @@ func (em *Manager) FireBatch(es ...interface{}) (ers []error) {
 
 // FireEvent fire event by given Event instance
 func (em *Manager) FireEvent(e Event) (err error) {
+	if em.EnableLock {
+		em.Lock()
+		defer em.Unlock()
+	}
+
 	// ensure aborted is false.
 	e.Abort(false)
 	name := e.Name()
