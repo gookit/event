@@ -3,6 +3,7 @@ package event
 import (
 	"regexp"
 	"strings"
+	"sync"
 )
 
 // Wildcard event name
@@ -28,6 +29,10 @@ type ManagerFace interface {
 
 // Manager event manager definition. for manage events and listeners
 type Manager struct {
+	sync.Mutex
+	// enable lock on fire event.
+	enableLock bool
+	// name of the manager
 	name string
 	// pool sync.Pool
 	// is an sample for new BasicEvent
@@ -52,6 +57,16 @@ func NewManager(name string) *Manager {
 	}
 
 	return em
+}
+
+// EnableLock of the manager.
+func (em *Manager) EnableLock() {
+	em.enableLock = true
+}
+
+// DisableLock of the manager.
+func (em *Manager) DisableLock() {
+	em.enableLock = false
 }
 
 /*************************************************************
@@ -155,6 +170,11 @@ func (em *Manager) Fire(name string, params M) (err error, e Event) {
 		if name != Wildcard && false == em.HasListeners(Wildcard) {
 			return
 		}
+	}
+
+	if em.enableLock {
+		em.Lock()
+		defer em.Unlock()
 	}
 
 	// call listeners use defined Event

@@ -206,6 +206,7 @@ func TestMustFire(t *testing.T) {
 
 func TestManager_FireEvent(t *testing.T) {
 	em := NewManager("test")
+	em.EnableLock()
 
 	e1 := NewBasic("e1", nil)
 	em.AddEvent(e1)
@@ -228,6 +229,7 @@ func TestManager_FireEvent(t *testing.T) {
 func TestManager_FireEvent2(t *testing.T) {
 	buf := new(bytes.Buffer)
 	mgr := NewManager("test")
+	mgr.DisableLock()
 
 	evt1 := NewBasic("evt1", nil).Fill(nil, M{"n": "inhere"})
 	mgr.AddEvent(evt1)
