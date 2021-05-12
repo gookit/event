@@ -29,7 +29,7 @@ jobs:
         run: env
 
       # https://github.com/actions/create-release
-      - uses: meeDamian/github-release@2.0
+      - uses: meeDamian/github-release@v2.0.3
         with:
           gzip: false
           token: ${{ secrets.GITHUB_TOKEN }}
