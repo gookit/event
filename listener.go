@@ -86,11 +86,13 @@ func (lq *ListenerQueue) Remove(listener Listener) {
 		return
 	}
 
+	// unsafe.Pointer(listener)
 	ptrVal := fmt.Sprintf("%p", listener)
 
 	var newItems []*ListenerItem
 	for _, li := range lq.items {
-		if fmt.Sprintf("%p", li.Listener) == ptrVal {
+		liPtrVal := fmt.Sprintf("%p", li.Listener)
+		if liPtrVal == ptrVal {
 			continue
 		}
 

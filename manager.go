@@ -13,17 +13,15 @@ const Wildcard = "*"
 var goodNameReg = regexp.MustCompile(`^[a-zA-Z][\w-.*]*$`)
 
 // M is short name for map[string]...
-type M map[string]interface{}
+type M = map[string]interface{}
 
 // ManagerFace event manager interface
 type ManagerFace interface {
-	// events:
-	// add event
+	// AddEvent events: add event
 	AddEvent(Event)
-	// listeners:
-	// add listeners
+	// On listeners: add listeners
 	On(name string, listener Listener, priority ...int)
-	// fire event
+	// Fire fire event
 	Fire(name string, params M) (error, Event)
 }
 

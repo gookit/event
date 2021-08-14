@@ -246,7 +246,7 @@ event.Fire("e1", nil)
 - [gookit/filter](https://github.com/gookit/filter) Provide filtering, sanitizing, and conversion of golang data
 - [gookit/validate](https://github.com/gookit/validate) Use for data validation and filtering. support Map, Struct, Form data
 - [gookit/goutil](https://github.com/gookit/goutil) Some utils for the Go: string, array/slice, map, format, cli, env, filesystem, test and more
-- More please see https://github.com/gookit
+- More, please see https://github.com/gookit
 
 ## LICENSE
 
