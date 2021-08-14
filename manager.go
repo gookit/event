@@ -129,7 +129,7 @@ func (em *Manager) addListenerItem(name string, li *ListenerItem) {
  * Listener Manage: - trigger event
  *************************************************************/
 
-// Trigger alias of the method MustFire()
+// MustTrigger alias of the method MustFire()
 func (em *Manager) MustTrigger(name string, params M) Event {
 	return em.MustFire(name, params)
 }
@@ -192,6 +192,7 @@ func (em *Manager) AwaitFire(e Event) (err error) {
 	}(e)
 
 	err = <-ch
+	close(ch)
 	return
 }
 
