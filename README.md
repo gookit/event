@@ -48,18 +48,18 @@ import (
 func main() {
 	// Register event listener
 	event.On("evt1", event.ListenerFunc(func(e event.Event) error {
-        fmt.Printf("handle event: %s\n", e.Name())
-        return nil
-    }), event.Normal)
-	
+		fmt.Printf("handle event: %s\n", e.Name())
+		return nil
+	}), event.Normal)
+
 	// Register multiple listeners
 	event.On("evt1", event.ListenerFunc(func(e event.Event) error {
-        fmt.Printf("handle event: %s\n", e.Name())
-        return nil
-    }), event.High)
-	
+		fmt.Printf("handle event: %s\n", e.Name())
+		return nil
+	}), event.High)
+
 	// ... ...
-	
+
 	// Trigger event
 	// Note: The second listener has a higher priority, so it will be executed first.
 	event.MustFire("evt1", event.M{"arg0": "val0", "arg1": "val1"})
@@ -75,18 +75,18 @@ package mypgk
 
 import (
 	"fmt"
-	
+
 	"github.com/gookit/event"
 )
 
 var fnHandler = func(e event.Event) error {
 	fmt.Printf("handle event: %s\n", e.Name())
-    return nil
+	return nil
 }
 
 func Run() {
-    // register
-    event.On("evt1", event.ListenerFunc(fnHandler), event.High)
+	// register
+	event.On("evt1", event.ListenerFunc(fnHandler), event.High)
 }
 ```
 
@@ -108,10 +108,7 @@ type Listener interface {
 ```go
 package mypgk
 
-import (
-	"fmt"
-	"github.com/gookit/event"
-)
+import "github.com/gookit/event"
 
 type MyListener struct {
 	// userData string
@@ -147,7 +144,7 @@ package mypgk
 
 import (
 	"fmt"
-	
+
 	"github.com/gookit/event"
 )
 
@@ -196,21 +193,17 @@ type Event interface {
 **examples:**
 
 ```go
-package mypgk 
+package mypgk
 
-import (
-	"fmt"
-	
-	"github.com/gookit/event"
-)
+import "github.com/gookit/event"
 
-type MyEvent struct{
+type MyEvent struct {
 	event.BasicEvent
 	customData string
 }
 
 func (e *MyEvent) CustomData() string {
-    return e.customData
+	return e.customData
 }
 ```
 
@@ -223,8 +216,8 @@ event.AddEvent(e)
 
 // add listener
 event.On("e1", event.ListenerFunc(func(e event.Event) error {
-   fmt.Printf("custom Data: %s\n", e.(*MyEvent).CustomData())
-   return nil
+	fmt.Printf("custom Data: %s\n", e.(*MyEvent).CustomData())
+	return nil
 }))
 
 // trigger
