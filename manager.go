@@ -152,10 +152,19 @@ func (em *Manager) Trigger(name string, params M) (error, Event) {
 func (em *Manager) Fire(name string, params M) (err error, e Event) {
 	name = goodName(name)
 
-	// not found listeners.
 	// NOTICE: must check the '*' global listeners
 	if false == em.HasListeners(name) && false == em.HasListeners(Wildcard) {
-		return
+		// has group listeners. "app.*" "app.db.*"
+		// eg: "app.db.run" will trigger listeners on the "app.db.*"
+		pos := strings.LastIndexByte(name, '.')
+		if pos > 0 && pos < len(name) {
+			groupName := name[:pos+1] + Wildcard // "app.db.*"
+
+			// not found listeners.
+			if false == em.HasListeners(groupName) {
+				return
+			}
+		}
 	}
 
 	// call listeners use defined Event
