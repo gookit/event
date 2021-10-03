@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/gookit/event"
-	"github.com/gookit/goutil/dump"
 	"github.com/stretchr/testify/assert"
 )
 
