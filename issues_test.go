@@ -90,7 +90,7 @@ func TestIssues_20(t *testing.T)  {
 
 	err, _ := mgr.Fire("app.user.add", event.M{"user": "INHERE"})
 	assert.NoError(t, err)
-	assert.Same(t, "app.user.add-INHERE|", buf.String())
+	assert.Equal(t, "app.user.add-INHERE|", buf.String())
 
 	// dump.P(buf.String())
 }
