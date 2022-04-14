@@ -3,6 +3,9 @@ package event
 // DefaultEM default event manager
 var DefaultEM = NewManager("default")
 
+// NoMatchedListener error
+// var NoMatchedListener = errors.New("no event listeners matched")
+
 /*************************************************************
  * Listener
  *************************************************************/
@@ -37,7 +40,7 @@ func Trigger(name string, params M) (error, Event) {
 	return DefaultEM.Fire(name, params)
 }
 
-// Fire fire listeners by name.
+// Fire listeners by name.
 func Fire(name string, params M) (error, Event) {
 	return DefaultEM.Fire(name, params)
 }

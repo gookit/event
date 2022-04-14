@@ -33,7 +33,7 @@ type Manager struct {
 	// name of the manager
 	name string
 	// pool sync.Pool
-	// is an sample for new BasicEvent
+	// is a sample for new BasicEvent
 	sample *BasicEvent
 	// storage user custom Event instance. you can pre-define some Event instances.
 	events map[string]Event
@@ -149,7 +149,7 @@ func (em *Manager) Trigger(name string, params M) (error, Event) {
 	return em.Fire(name, params)
 }
 
-// Fire trigger event by name
+// Fire trigger event by name. if not found listener, will return (nil, nil)
 func (em *Manager) Fire(name string, params M) (err error, e Event) {
 	name = goodName(name)
 
@@ -158,13 +158,13 @@ func (em *Manager) Fire(name string, params M) (err error, e Event) {
 		// has group listeners. "app.*" "app.db.*"
 		// eg: "app.db.run" will trigger listeners on the "app.db.*"
 		pos := strings.LastIndexByte(name, '.')
-		if pos > 0 && pos < len(name) {
-			groupName := name[:pos+1] + Wildcard // "app.db.*"
+		if pos < 0 || pos == len(name)-1 {
+			return // not found listeners.
+		}
 
-			// not found listeners.
-			if false == em.HasListeners(groupName) {
-				return
-			}
+		groupName := name[:pos+1] + Wildcard // "app.db.*"
+		if false == em.HasListeners(groupName) {
+			return // not found listeners.
 		}
 	}
 
@@ -320,7 +320,6 @@ func (em *Manager) newBasicEvent(name string, data M) *BasicEvent {
 
 	cp.SetName(name)
 	cp.SetData(data)
-
 	return &cp
 }
 
@@ -354,6 +353,7 @@ func (em *Manager) ListenedNames() map[string]int {
 }
 
 // RemoveListener remove a given listener, you can limit event name.
+//
 // Usage:
 // 	RemoveListener("", listener)
 // 	RemoveListener("name", listener) // limit event name.
