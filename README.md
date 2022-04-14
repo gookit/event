@@ -66,6 +66,42 @@ func main() {
 }
 ```
 
+> Note: The second listener has a higher priority, so it will be executed first.
+
+### Using the wildcard
+
+Register event listener and name end with wildcard `*`:
+
+```go
+func main() {
+	dbListener1 := event.ListenerFunc(func(e event.Event) error {
+		fmt.Printf("handle event: %s\n", e.Name())
+		return nil
+	})
+
+	event.On("app.db.*", dbListener1, event.Normal)
+}
+```
+
+Trigger events on other logic:
+
+```go
+func doCreate() {
+	// do something ...
+	// Trigger event
+	event.MustFire("app.db.create", event.M{"arg0": "val0", "arg1": "val1"})
+}
+
+func doUpdate() {
+	// do something ...
+	// Trigger event
+	event.MustFire("app.db.update", event.M{"arg0": "val0"})
+}
+```
+
+Like the above, triggering the `app.db.create` `app.db.update` event
+will trigger the execution of the `dbListener1` listener.
+
 ## Write event listeners
 
 ### Using anonymous functions
@@ -225,6 +261,8 @@ event.Fire("e1", nil)
 // OR
 // event.FireEvent(e)
 ```
+
+
 
 ## Gookit packages
 

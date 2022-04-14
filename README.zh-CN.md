@@ -66,6 +66,41 @@ func main() {
 }
 ```
 
+> Note: 注意：第二个监听器的优先级更高，所以它会先被执行
+
+### 使用通配符
+
+注册事件监听器和名称以通配符`*`结尾:
+
+```go
+func main() {
+	dbListener1 := event.ListenerFunc(func(e event.Event) error {
+		fmt.Printf("handle event: %s\n", e.Name())
+		return nil
+	})
+
+	event.On("app.db.*", dbListener1, event.Normal)
+}
+```
+
+在其他逻辑上触发事件:
+
+```go
+func doCreate() {
+	// do something ...
+	// Trigger event
+	event.MustFire("app.db.create", event.M{"arg0": "val0", "arg1": "val1"})
+}
+
+func doUpdate() {
+	// do something ...
+	// Trigger event
+	event.MustFire("app.db.update", event.M{"arg0": "val0"})
+}
+```
+
+像上面这样,触发 `app.db.create` `app.db.update` 事件,都会触发执行 `dbListener1` 监听器.
+
 ## 编写事件监听
 
 ### 使用匿名函数
