@@ -5,7 +5,6 @@ package event
 // Event interface
 type Event interface {
 	Name() string
-	// Target() interface{}
 	Get(key string) interface{}
 	Set(key string, val interface{})
 	Add(key string, val interface{})
@@ -27,7 +26,7 @@ type BasicEvent struct {
 	aborted bool
 }
 
-// NewBasic new an basic event instance
+// NewBasic new a basic event instance
 func NewBasic(name string, data M) *BasicEvent {
 	if data == nil {
 		data = make(map[string]interface{})
@@ -39,7 +38,7 @@ func NewBasic(name string, data M) *BasicEvent {
 	}
 }
 
-// Abort abort event loop exec
+// Abort event loop exec
 func (e *BasicEvent) Abort(abort bool) {
 	e.aborted = abort
 }
@@ -59,7 +58,7 @@ func (e *BasicEvent) AttachTo(em ManagerFace) {
 	em.AddEvent(e)
 }
 
-// Get get data by index
+// Get data by index
 func (e *BasicEvent) Get(key string) interface{} {
 	if v, ok := e.data[key]; ok {
 		return v

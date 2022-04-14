@@ -21,7 +21,7 @@ type ManagerFace interface {
 	AddEvent(Event)
 	// On listeners: add listeners
 	On(name string, listener Listener, priority ...int)
-	// Fire fire event
+	// Fire event
 	Fire(name string, params M) (error, Event)
 }
 
@@ -72,6 +72,7 @@ func (em *Manager) Listen(name string, listener Listener, priority ...int) {
 }
 
 // On register a event handler/listener. can setting priority.
+//
 // Usage:
 // 	On("evt0", listener)
 // 	On("evt0", listener, High)
