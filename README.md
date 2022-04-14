@@ -28,7 +28,7 @@ Lightweight event management, dispatch tool library implemented by Go
 
 - `On/Listen(name string, listener Listener, priority ...int)` Register event listener
 - `Subscribe/AddSubscriber(sbr Subscriber)`  Subscribe to support registration of multiple event listeners
-- `Trigger/Fire(name string, params M) (error, Event)` Trigger event
+- `Trigger/Fire(name string, params M) (error, Event)` Trigger event by name and params
 - `MustTrigger/MustFire(name string, params M) Event`   Trigger event, there will be panic if there is an error
 - `FireEvent(e Event) (err error)`    Trigger an event based on a given event instance
 - `FireBatch(es ...interface{}) (ers []error)` Trigger multiple events at once
@@ -106,6 +106,8 @@ will trigger the execution of the `dbListener1` listener.
 
 ### Using anonymous functions
 
+You can use anonymous function for quick write an event lister.
+
 ```go
 package mypgk
 
@@ -127,6 +129,8 @@ func Run() {
 ```
 
 ### Using the structure method
+
+You can use struct write an event lister, and it should implementation interface `event.Listener`.
 
 **interface:**
 
@@ -157,6 +161,9 @@ func (l *MyListener) Handle(e event.Event) error {
 ```
 
 ## Register multiple event listeners
+
+Can implementation interface `event.Subscriber` for register
+multiple event listeners at once.
 
 **interface:**
 
@@ -208,6 +215,9 @@ func (s *MySubscriber) e1Handler(e event.Event) error {
 ```
 
 ## Write custom events
+
+If you want to customize the event object or define some fixed event information in advance,
+you can implement the `event.Event` interface.
 
 **interface:**
 
@@ -261,8 +271,6 @@ event.Fire("e1", nil)
 // OR
 // event.FireEvent(e)
 ```
-
-
 
 ## Gookit packages
 

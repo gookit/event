@@ -212,6 +212,8 @@ func (s *MySubscriber) e1Handler(e event.Event) error {
 
 ## 编写自定义事件
 
+如果你希望自定义事件对象或者提前定义好一些固定事件信息,可以实现 `event.Event` 接口.
+
 **interface:**
 
 ```go
