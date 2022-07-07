@@ -24,6 +24,12 @@ Lightweight event management, dispatch tool library implemented by Go
 
 - [Godoc for github](https://pkg.go.dev/github.com/gookit/event)
 
+## Install
+
+```shell
+go get github.com/gookit/event
+```
+
 ## Main method
 
 - `On/Listen(name string, listener Listener, priority ...int)` Register event listener

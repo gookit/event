@@ -24,6 +24,12 @@ English introduction, please see **[EN README](README.md)**
 
 - [Godoc for github](https://pkg.go.dev/github.com/gookit/event)
 
+## 安装
+
+```shell
+go get github.com/gookit/event
+```
+
 ## 主要方法
 
 - `On/Listen(name string, listener Listener, priority ...int)` 注册事件监听
@@ -274,7 +280,7 @@ event.Fire("e1", nil)
 ## Gookit 工具包
 
 - [gookit/ini](https://github.com/gookit/ini) INI配置读取管理，支持多文件加载，数据覆盖合并, 解析ENV变量, 解析变量引用
-- [gookit/rux](https://github.com/gookit/rux) Simple and fast request router for golang HTTP 
+- [gookit/rux](https://github.com/gookit/rux) 简单且快速的 Go web 框架，支持中间件，兼容 http.Handler 接口
 - [gookit/gcli](https://github.com/gookit/gcli) Go的命令行应用，工具库，运行CLI命令，支持命令行色彩，用户交互，进度显示，数据格式化显示
 - [gookit/slog](https://github.com/gookit/slog) 用Go编写的轻量级，可扩展，可配置的日志记录库
 - [gookit/event](https://github.com/gookit/event) Go实现的轻量级的事件管理、调度程序库, 支持设置监听器的优先级, 支持对一组事件进行监听
