@@ -1,9 +1,15 @@
 name: Unit-Tests
 on:
+  pull_request:
+    paths:
+      - 'go.mod'
+      - '**.go'
+      - '**.yml'
   push:
     paths:
       - 'go.mod'
       - '**.go'
+      - '**.yml'
 
 jobs:
 
@@ -12,7 +18,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        go_version: [1.15, 1.16, 1.17, 1.18]
+        go_version: [1.19, 1.16, 1.17, 1.18]
         os: [ubuntu-latest, macOS-latest]
 
     steps:
