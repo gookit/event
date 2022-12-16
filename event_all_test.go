@@ -146,7 +146,7 @@ func TestFire(t *testing.T) {
 	err, e = Trigger("evt2", M{"k": "v"})
 	assert.NoError(t, err)
 	assert.Equal(t, "evt2", e.Name())
-	assert.Equal(t, map[string]interface{}{"k": "v"}, e.Data())
+	assert.Equal(t, map[string]any{"k": "v"}, e.Data())
 
 	// clear all
 	Reset()
@@ -361,7 +361,7 @@ func TestListenGroupEvent(t *testing.T) {
 func TestManager_AsyncFire(t *testing.T) {
 	em := NewManager("test")
 	em.On("e1", ListenerFunc(func(e Event) error {
-		assert.Equal(t, map[string]interface{}{"k": "v"}, e.Data())
+		assert.Equal(t, map[string]any{"k": "v"}, e.Data())
 		e.Set("nk", "nv")
 		return nil
 	}))
@@ -388,7 +388,7 @@ func TestManager_AsyncFire(t *testing.T) {
 func TestManager_AwaitFire(t *testing.T) {
 	em := NewManager("test")
 	em.On("e1", ListenerFunc(func(e Event) error {
-		assert.Equal(t, map[string]interface{}{"k": "v"}, e.Data())
+		assert.Equal(t, map[string]any{"k": "v"}, e.Data())
 		e.Set("nk", "nv")
 		return nil
 	}))
@@ -405,8 +405,8 @@ type testSubscriber struct {
 	// ooo
 }
 
-func (s *testSubscriber) SubscribedEvents() map[string]interface{} {
-	return map[string]interface{}{
+func (s *testSubscriber) SubscribedEvents() map[string]any {
+	return map[string]any{
 		"e1": ListenerFunc(s.e1Handler),
 		"e2": ListenerItem{
 			Priority: AboveNormal,
@@ -425,8 +425,8 @@ func (s *testSubscriber) e1Handler(e Event) error {
 
 type testSubscriber2 struct{}
 
-func (s testSubscriber2) SubscribedEvents() map[string]interface{} {
-	return map[string]interface{}{
+func (s testSubscriber2) SubscribedEvents() map[string]any {
+	return map[string]any{
 		"e1": "invalid",
 	}
 }

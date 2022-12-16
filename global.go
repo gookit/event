@@ -66,7 +66,7 @@ func MustTrigger(name string, params M) Event {
 }
 
 // FireBatch fire multi event at once.
-func FireBatch(es ...interface{}) []error {
+func FireBatch(es ...any) []error {
 	return DefaultEM.FireBatch(es...)
 }
 

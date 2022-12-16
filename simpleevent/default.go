@@ -19,15 +19,15 @@ func Has(name string) bool {
 }
 
 // Fire fire handlers by name.
-func Fire(name string, args ...interface{}) error {
+func Fire(name string, args ...any) error {
 	return DefaultEM.Fire(name, args)
 }
 
 // MustFire fire event by name. will panic on error
-func MustFire(name string, args ...interface{}) {
+func MustFire(name string, args ...any) {
 	DefaultEM.MustFire(name, args)
 }
 
-func funcName(f interface{}) string {
+func funcName(f any) string {
 	return runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
 }

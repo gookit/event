@@ -24,7 +24,7 @@ type Subscriber interface {
 	// SubscribedEvents register event listeners
 	// key: is event name
 	// value: can be Listener or ListenerItem interface
-	SubscribedEvents() map[string]interface{}
+	SubscribedEvents() map[string]any
 }
 
 // ListenerItem storage a event listener and it's priority value.
@@ -60,7 +60,8 @@ func (lq *ListenerQueue) Push(li *ListenerItem) *ListenerQueue {
 
 // Sort the queue items by ListenerItem's priority.
 // Priority:
-// 	High > Low
+//
+//	High > Low
 func (lq *ListenerQueue) Sort() *ListenerQueue {
 	// if lq.IsEmpty() {
 	// 	return lq
@@ -102,7 +103,7 @@ func (lq *ListenerQueue) Remove(listener Listener) {
 	lq.items = newItems
 }
 
-// Clear clear all listeners
+// Clear all listeners
 func (lq *ListenerQueue) Clear() {
 	lq.items = lq.items[:0]
 }

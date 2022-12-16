@@ -10,7 +10,7 @@ type EventData struct {
 	// event name
 	name string
 	// user data.
-	Data []interface{}
+	Data []any
 }
 
 // Name get
@@ -28,13 +28,13 @@ func (e *EventData) IsAborted() bool {
 	return e.aborted
 }
 
-func (e *EventData) init(name string, data []interface{}) {
+func (e *EventData) init(name string, data []any) {
 	e.name = name
 	e.Data = data
 }
 
 func (e *EventData) reset() {
 	e.name = ""
-	e.Data = make([]interface{}, 0)
+	e.Data = make([]any, 0)
 	e.aborted = false
 }

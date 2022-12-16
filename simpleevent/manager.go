@@ -32,7 +32,7 @@ func NewEventManager() *EventManager {
 	}
 
 	// set pool creator
-	em.pool.New = func() interface{} {
+	em.pool.New = func() any {
 		return &EventData{}
 	}
 
@@ -56,7 +56,7 @@ func (em *EventManager) On(name string, handler HandlerFunc) {
 }
 
 // MustFire fire handlers by name. will panic on error
-func (em *EventManager) MustFire(name string, args ...interface{}) {
+func (em *EventManager) MustFire(name string, args ...any) {
 	err := em.Fire(name, args...)
 	if err != nil {
 		panic(err)
@@ -64,7 +64,7 @@ func (em *EventManager) MustFire(name string, args ...interface{}) {
 }
 
 // Fire handlers by name
-func (em *EventManager) Fire(name string, args ...interface{}) (err error) {
+func (em *EventManager) Fire(name string, args ...any) (err error) {
 	handlers, ok := em.handlers[name]
 	if !ok {
 		return
