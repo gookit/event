@@ -74,8 +74,9 @@ func (em *Manager) Listen(name string, listener Listener, priority ...int) {
 // On register a event handler/listener. can setting priority.
 //
 // Usage:
-// 	On("evt0", listener)
-// 	On("evt0", listener, High)
+//
+//	On("evt0", listener)
+//	On("evt0", listener, High)
 func (em *Manager) On(name string, listener Listener, priority ...int) {
 	pv := Normal
 	if len(priority) > 0 {
@@ -171,7 +172,7 @@ func (em *Manager) Fire(name string, params M) (err error, e Event) {
 	// call listeners use defined Event
 	if e, ok := em.events[name]; ok {
 		if params != nil {
-			e.SetData(params)
+			e = e.SetData(params)
 		}
 
 		err = em.FireEvent(e)
@@ -208,7 +209,8 @@ func (em *Manager) AwaitFire(e Event) (err error) {
 
 // FireBatch fire multi event at once.
 // Usage:
-// 	FireBatch("name1", "name2", &MyEvent{})
+//
+//	FireBatch("name1", "name2", &MyEvent{})
 func (em *Manager) FireBatch(es ...interface{}) (ers []error) {
 	var err error
 	for _, e := range es {
@@ -317,9 +319,8 @@ func (em *Manager) RemoveEvents() {
 // newBasicEvent create new BasicEvent by clone em.sample
 func (em *Manager) newBasicEvent(name string, data M) *BasicEvent {
 	var cp = *em.sample
-
-	cp.SetName(name)
-	cp.SetData(data)
+	cp = cp.SetName(name)
+	cp = cp.SetData(data).(BasicEvent)
 	return &cp
 }
 
@@ -355,8 +356,9 @@ func (em *Manager) ListenedNames() map[string]int {
 // RemoveListener remove a given listener, you can limit event name.
 //
 // Usage:
-// 	RemoveListener("", listener)
-// 	RemoveListener("name", listener) // limit event name.
+//
+//	RemoveListener("", listener)
+//	RemoveListener("name", listener) // limit event name.
 func (em *Manager) RemoveListener(name string, listener Listener) {
 	if name != "" {
 		if lq, ok := em.listeners[name]; ok {
