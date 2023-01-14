@@ -4,16 +4,13 @@ import (
 	"fmt"
 	"reflect"
 	"unsafe"
+	_ "unsafe"
 )
 
-func getReflectRawPointer[T any](src T) uintptr {
-	//if src == nil {
-	//	return 0
-	//}
-	v := reflect.ValueOf(src)
+func getReflectRawPointer(v reflect.Value) uintptr {
 	switch v.Kind() {
 	case reflect.Func:
-		return getNativePointer(v)
+		return uintptr(getNativePointerLink(&v))
 	case reflect.Pointer, reflect.Chan, reflect.Map, reflect.UnsafePointer:
 		return v.Pointer()
 	default:
@@ -22,25 +19,17 @@ func getReflectRawPointer[T any](src T) uintptr {
 }
 
 // only validate in reflect.Pointer, reflect.Chan, reflect.Map, reflect.UnsafePointer, reflect.Func
-func getNativePointer[T any](src T) uintptr {
-	vv := (*emptyInterface)(unsafe.Pointer(&src))
-	return uintptr(vv.word)
-}
+//go:linkname getNativePointerLink  reflect.(*Value).pointer
+func getNativePointerLink(*reflect.Value) unsafe.Pointer
 
-// source code from reflect.ValueOf()
-type emptyInterface struct {
-	typ  *struct{} //*rtype
-	word unsafe.Pointer
-}
-
-type anyRawValue struct {
+type listenerCompareKey struct {
 	strData string
 	ptrData uintptr
 }
 
-func getAnyRawValue[T any](src T) anyRawValue {
-	ret := anyRawValue{
-		ptrData: getReflectRawPointer(src),
+func getAnyRawValue(src Listener) listenerCompareKey {
+	ret := listenerCompareKey{
+		ptrData: getReflectRawPointer(reflect.ValueOf(src)),
 	}
 	if ret.ptrData == 0 {
 		//ret.strData = fmt.Sprintf("%v", src)
@@ -48,7 +37,6 @@ func getAnyRawValue[T any](src T) anyRawValue {
 	}
 	return ret
 }
-
-func getListenCompareKey(src Listener) anyRawValue {
+func getListenCompareKey(src Listener) listenerCompareKey {
 	return getAnyRawValue(src)
 }

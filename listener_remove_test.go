@@ -56,7 +56,7 @@ func Test_RemoveListener(t *testing.T) {
 		require.Equal(t, global.n, 6)
 		require.Equal(t, global.sum, 143) // 121+22=143
 	})
-	t.Run("", func(t *testing.T) {
+	t.Run("same value struct", func(t *testing.T) {
 		global := &globalTestVal{}
 		f1 := testListenerCalc{bind: 11, owner: global}
 		f2 := testListenerCalc{bind: 22, owner: global}
@@ -84,7 +84,7 @@ func Test_RemoveListener(t *testing.T) {
 		require.Equal(t, global.n, 7)
 		require.Equal(t, global.sum, 143) //
 	})
-	t.Run("", func(t *testing.T) {
+	t.Run("same func", func(t *testing.T) {
 		global := &globalStatic
 
 		f1 := ListenerFunc(testFuncCalc1)
