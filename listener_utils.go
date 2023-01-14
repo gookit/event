@@ -27,7 +27,7 @@ type listenerCompareKey struct {
 	ptrData uintptr
 }
 
-func getAnyRawValue(src Listener) listenerCompareKey {
+func getListenCompareKey(src Listener) listenerCompareKey {
 	ret := listenerCompareKey{
 		ptrData: getReflectRawPointer(reflect.ValueOf(src)),
 	}
@@ -36,7 +36,4 @@ func getAnyRawValue(src Listener) listenerCompareKey {
 		ret.strData = fmt.Sprintf("%p", any(src))
 	}
 	return ret
-}
-func getListenCompareKey(src Listener) listenerCompareKey {
-	return getAnyRawValue(src)
 }
