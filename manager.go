@@ -1,6 +1,7 @@
 package event
 
 import (
+	"reflect"
 	"regexp"
 	"strings"
 	"sync"
@@ -116,6 +117,9 @@ func (em *Manager) addListenerItem(name string, li *ListenerItem) {
 
 	if li.Listener == nil {
 		panic("event: the event '" + name + "' listener cannot be empty")
+	}
+	if reflect.ValueOf(li.Listener).Kind() == reflect.Struct {
+		panic("don't use struct Listener, can be pointer Listener")
 	}
 
 	// exists, append it.
