@@ -36,25 +36,39 @@ func Test_RemoveListener(t *testing.T) {
 
 		f1 := makeFn(11)
 		f2 := makeFn(22)
-		f3 := &testListenerCalc{bind: 33, owner: global}
+		f3 := makeFn(33)
+		p4 := &testListenerCalc{bind: 44, owner: global}
+		p5 := &testListenerCalc{bind: 55, owner: global}
+		p6 := &testListenerCalc{bind: 66, owner: global}
 
 		evBus.On(evName, f1)
 		evBus.On(evName, f2)
 		evBus.On(evName, f3)
+		evBus.On(evName, p4)
+		evBus.On(evName, p5)
+		evBus.On(evName, p6)
 
-		evBus.MustFire(evName, nil)
-		require.Equal(t, global.n, 3)
-		require.Equal(t, global.sum, 66) //11+22+33=66
-
-		evBus.RemoveListener(evName, f1)
-		evBus.MustFire(evName, nil)
-		require.Equal(t, global.n, 5)
-		require.Equal(t, global.sum, 121) // 66+22+33=121
-
-		evBus.RemoveListener(evName, f3)
 		evBus.MustFire(evName, nil)
 		require.Equal(t, global.n, 6)
-		require.Equal(t, global.sum, 143) // 121+22=143
+		require.Equal(t, global.sum, 231) //11+22+33+44+55+66=231
+
+		evBus.RemoveListener(evName, f2)
+		evBus.RemoveListener(evName, p5)
+		evBus.MustFire(evName, nil)
+		require.Equal(t, global.n, 6+4)
+		require.Equal(t, global.sum, 385) // 231+11+33+44+66=385
+
+		evBus.RemoveListener(evName, f1)
+		evBus.RemoveListener(evName, f1) // not exist function.
+		evBus.MustFire(evName, nil)
+		require.Equal(t, global.n, 6+4+3)
+		require.Equal(t, global.sum, 528) // 385+33+44+66=528
+
+		evBus.RemoveListener(evName, p6)
+		evBus.RemoveListener(evName, p6) // not exist function.
+		evBus.MustFire(evName, nil)
+		require.Equal(t, global.n, 6+4+3+2)
+		require.Equal(t, global.sum, 605) // 528+33+44=605
 	})
 	t.Run("same value struct", func(t *testing.T) {
 		global := &globalTestVal{}
