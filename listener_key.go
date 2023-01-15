@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"unsafe"
-	_ "unsafe"
 )
 
 func getReflectRawPointer(v reflect.Value) uintptr {
