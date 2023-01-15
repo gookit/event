@@ -1,9 +1,11 @@
+// Package event
 package event
 
 import (
 	"fmt"
 	"reflect"
 	"unsafe"
+	_ "unsafe" // go linkname
 )
 
 func getReflectRawPointer(v reflect.Value) uintptr {
