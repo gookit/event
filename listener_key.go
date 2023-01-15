@@ -1,4 +1,4 @@
-// Package event
+// Package event is lightweight event manager and dispatcher implements by Go.
 package event
 
 import (
