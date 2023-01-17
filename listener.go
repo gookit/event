@@ -1,7 +1,6 @@
 package event
 
 import (
-	"fmt"
 	"sort"
 )
 
@@ -88,11 +87,11 @@ func (lq *ListenerQueue) Remove(listener Listener) {
 	}
 
 	// unsafe.Pointer(listener)
-	ptrVal := fmt.Sprintf("%p", listener)
+	ptrVal := getListenCompareKey(listener)
 
 	var newItems []*ListenerItem
 	for _, li := range lq.items {
-		liPtrVal := fmt.Sprintf("%p", li.Listener)
+		liPtrVal := getListenCompareKey(li.Listener)
 		if liPtrVal == ptrVal {
 			continue
 		}
