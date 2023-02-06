@@ -70,6 +70,36 @@ func Test_RemoveListener(t *testing.T) {
 		require.Equal(t, global.n, 6+4+3+2)
 		require.Equal(t, global.sum, 605) // 528+33+44=605
 	})
+  
+	t.Run("same value struct", func(t *testing.T) {
+		global := &globalTestVal{}
+		f1 := testListenerCalc{bind: 11, owner: global}
+		f2 := testListenerCalc{bind: 22, owner: global}
+		f2same := testListenerCalc{bind: 22, owner: global}
+		f2copy := f2 // testListenerCalc{bind: 22, owner: global}
+
+		evBus := NewManager("")
+		const evName = "ev1"
+		evBus.On(evName, f1)
+		evBus.On(evName, f2)
+		evBus.On(evName, f2same)
+		evBus.On(evName, f2copy)
+
+		evBus.MustFire(evName, nil)
+		require.Equal(t, global.n, 4)
+		require.Equal(t, global.sum, 77) //11+22+22+22=77
+
+		evBus.RemoveListener(evName, f1)
+		evBus.MustFire(evName, nil)
+		require.Equal(t, global.n, 7)
+		require.Equal(t, global.sum, 143) // 77+22+22+22=143
+
+		evBus.RemoveListener(evName, f2)
+		evBus.MustFire(evName, nil)
+		require.Equal(t, global.n, 7)
+		require.Equal(t, global.sum, 143) //
+	})
+  
 	t.Run("same func", func(t *testing.T) {
 		global := &globalStatic
 
