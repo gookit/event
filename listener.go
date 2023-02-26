@@ -1,6 +1,7 @@
 package event
 
 import (
+	"reflect"
 	"sort"
 )
 
@@ -105,6 +106,11 @@ func (lq *ListenerQueue) Remove(listener Listener) {
 // Clear all listeners
 func (lq *ListenerQueue) Clear() {
 	lq.items = lq.items[:0]
+}
+
+/////
+func getListenCompareKey(src Listener) reflect.Value {
+	return reflect.ValueOf(src)
 }
 
 /*************************************************************
