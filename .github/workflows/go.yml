@@ -37,7 +37,7 @@ jobs:
       run: go test -v -coverprofile="profile.cov" ./...
 
     - name: Send coverage
-      uses: shogo82148/actions-goveralls@v1.6.0
+      uses: shogo82148/actions-goveralls@v1.7.0
       if: ${{ matrix.os == 'ubuntu-latest' }}
       with:
         path-to-profile: profile.cov
@@ -50,6 +50,6 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: shogo82148/actions-goveralls@v1.6.0
+      - uses: shogo82148/actions-goveralls@v1.7.0
         with:
           parallel-finished: true
