@@ -2,7 +2,6 @@ package event_test
 
 import (
 	"bytes"
-	"container/list"
 	"fmt"
 	"testing"
 
@@ -34,7 +33,7 @@ func TestIssue_8(t *testing.T) {
 	assert.True(t, isRun)
 }
 
-// https://github.com/gookit/event/issues/8
+// https://github.com/gookit/event/issues/9
 func TestIssues_9(t *testing.T) {
 	evBus := event.NewManager("")
 	eName := "evt1"
@@ -51,15 +50,7 @@ func TestIssues_9(t *testing.T) {
 		return nil
 	})
 	evBus.On(eName, f3)
-
-	l := list.New()
-	l.PushBack(f1)
-	l.PushBack(f2)
-	l.PushBack(f3)
-
-	// dump.Println(l.Len())
-	t.Skip("un-resolved")
-	return
+	assert.Equal(t, 3, evBus.ListenersCount(eName))
 
 	evBus.RemoveListener(eName, f1) // DON'T REMOVE ALL !!!
 	assert.Equal(t, 2, evBus.ListenersCount(eName))
@@ -69,13 +60,14 @@ func TestIssues_9(t *testing.T) {
 
 func makeFn(a int) event.ListenerFunc {
 	return func(e event.Event) error {
+		e.Set("val", a)
 		// dump.Println(a, e.Name())
 		return nil
 	}
 }
 
 // https://github.com/gookit/event/issues/20
-func TestIssues_20(t *testing.T)  {
+func TestIssues_20(t *testing.T) {
 	buf := new(bytes.Buffer)
 	mgr := event.NewManager("test")
 

@@ -1,8 +1,9 @@
 package event
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type globalTestVal struct {
@@ -21,7 +22,7 @@ func (l testListenerCalc) Handle(e Event) error {
 }
 
 func Test_RemoveListener(t *testing.T) {
-	t.Run("", func(t *testing.T) {
+	t.Run("make func", func(t *testing.T) {
 		global := &globalTestVal{}
 		makeFn := func(a int) ListenerFunc {
 			return func(e Event) error {
@@ -49,28 +50,28 @@ func Test_RemoveListener(t *testing.T) {
 		evBus.On(evName, p6)
 
 		evBus.MustFire(evName, nil)
-		require.Equal(t, global.n, 6)
-		require.Equal(t, global.sum, 231) //11+22+33+44+55+66=231
+		assert.Equal(t, global.n, 6)
+		assert.Equal(t, global.sum, 231) // 11+22+33+44+55+66=231
 
 		evBus.RemoveListener(evName, f2)
 		evBus.RemoveListener(evName, p5)
 		evBus.MustFire(evName, nil)
-		require.Equal(t, global.n, 6+4)
-		require.Equal(t, global.sum, 385) // 231+11+33+44+66=385
+		assert.Equal(t, global.n, 6+4)
+		assert.Equal(t, global.sum, 385) // 231+11+33+44+66=385
 
 		evBus.RemoveListener(evName, f1)
 		evBus.RemoveListener(evName, f1) // not exist function.
 		evBus.MustFire(evName, nil)
-		require.Equal(t, global.n, 6+4+3)
-		require.Equal(t, global.sum, 528) // 385+33+44+66=528
+		assert.Equal(t, global.n, 6+4+3)
+		assert.Equal(t, global.sum, 528) // 385+33+44+66=528
 
 		evBus.RemoveListener(evName, p6)
 		evBus.RemoveListener(evName, p6) // not exist function.
 		evBus.MustFire(evName, nil)
-		require.Equal(t, global.n, 6+4+3+2)
-		require.Equal(t, global.sum, 605) // 528+33+44=605
+		assert.Equal(t, global.n, 6+4+3+2)
+		assert.Equal(t, global.sum, 605) // 528+33+44=605
 	})
-  
+
 	t.Run("same value struct", func(t *testing.T) {
 		global := &globalTestVal{}
 		f1 := testListenerCalc{bind: 11, owner: global}
@@ -80,26 +81,28 @@ func Test_RemoveListener(t *testing.T) {
 
 		evBus := NewManager("")
 		const evName = "ev1"
-		evBus.On(evName, f1)
-		evBus.On(evName, f2)
-		evBus.On(evName, f2same)
-		evBus.On(evName, f2copy)
+		assert.Panics(t, func() {
+			evBus.On(evName, f1)
+			evBus.On(evName, f2)
+			evBus.On(evName, f2same)
+			evBus.On(evName, f2copy)
+		})
 
 		evBus.MustFire(evName, nil)
-		require.Equal(t, global.n, 4)
-		require.Equal(t, global.sum, 77) //11+22+22+22=77
+		assert.Equal(t, global.n, 0)
+		assert.Equal(t, global.sum, 0) // 11+22+22+22=77
 
 		evBus.RemoveListener(evName, f1)
 		evBus.MustFire(evName, nil)
-		require.Equal(t, global.n, 7)
-		require.Equal(t, global.sum, 143) // 77+22+22+22=143
+		assert.Equal(t, global.n, 0)
+		assert.Equal(t, global.sum, 0) // 77+22+22+22=143
 
 		evBus.RemoveListener(evName, f2)
 		evBus.MustFire(evName, nil)
-		require.Equal(t, global.n, 7)
-		require.Equal(t, global.sum, 143) //
+		assert.Equal(t, global.n, 0)
+		assert.Equal(t, global.sum, 0)
 	})
-  
+
 	t.Run("same func", func(t *testing.T) {
 		global := &globalStatic
 
@@ -116,18 +119,18 @@ func Test_RemoveListener(t *testing.T) {
 		evBus.On(evName, f2copy)
 
 		evBus.MustFire(evName, nil)
-		require.Equal(t, global.n, 4)
-		require.Equal(t, global.sum, 77) //11+22+22+22=77
+		assert.Equal(t, global.n, 4)
+		assert.Equal(t, global.sum, 77) // 11+22+22+22=77
 
 		evBus.RemoveListener(evName, f1)
 		evBus.MustFire(evName, nil)
-		require.Equal(t, global.n, 7)
-		require.Equal(t, global.sum, 143) // 77+22+22+22=143
+		assert.Equal(t, global.n, 7)
+		assert.Equal(t, global.sum, 143) // 77+22+22+22=143
 
 		evBus.RemoveListener(evName, f2)
 		evBus.MustFire(evName, nil)
-		require.Equal(t, global.n, 7)
-		require.Equal(t, global.sum, 143) //
+		assert.Equal(t, global.n, 7)
+		assert.Equal(t, global.sum, 143) //
 	})
 }
 
@@ -144,4 +147,4 @@ func testFuncCalc2(e Event) error {
 	return nil
 }
 
-///
+// /
