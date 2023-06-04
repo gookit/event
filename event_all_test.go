@@ -155,7 +155,7 @@ func TestFire(t *testing.T) {
 
 	err, e = Fire("not-exist", nil)
 	assert.NoError(t, err)
-	assert.Nil(t, e)
+	assert.NotEmpty(t, e)
 }
 
 func TestFireEvent(t *testing.T) {

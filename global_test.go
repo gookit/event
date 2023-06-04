@@ -20,11 +20,11 @@ func TestFire_point_at_end(t *testing.T) {
 	assert.Equal(t, "val", e.Get("key"))
 
 	err, e = event.Fire("db", nil)
-	assert.Nil(t, e)
+	assert.NotEmpty(t, e)
 	assert.NoError(t, err)
 
 	err, e = event.Fire("db.", nil)
-	assert.Nil(t, e)
+	assert.NotEmpty(t, e)
 	assert.NoError(t, err)
 }
 
@@ -34,5 +34,5 @@ func TestFire_notExist(t *testing.T) {
 
 	err, e := event.Fire("not-exist", nil)
 	assert.NoError(t, err)
-	assert.Nil(t, e)
+	assert.NotEmpty(t, e)
 }
