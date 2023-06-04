@@ -19,11 +19,13 @@ func (fn ListenerFunc) Handle(e Event) error {
 }
 
 // Subscriber event subscriber interface.
+//
 // you can register multi event listeners in a struct func.
 type Subscriber interface {
 	// SubscribedEvents register event listeners
-	// key: is event name
-	// value: can be Listener or ListenerItem interface
+	//
+	//  - key: is event name. eg "user.created" "user.*" "user.**"
+	//  - value: can be Listener or ListenerItem interface
 	SubscribedEvents() map[string]any
 }
 
@@ -59,6 +61,7 @@ func (lq *ListenerQueue) Push(li *ListenerItem) *ListenerQueue {
 }
 
 // Sort the queue items by ListenerItem's priority.
+//
 // Priority:
 //
 //	High > Low
@@ -108,7 +111,7 @@ func (lq *ListenerQueue) Clear() {
 	lq.items = lq.items[:0]
 }
 
-/////
+// getListenCompareKey get listener compare key
 func getListenCompareKey(src Listener) reflect.Value {
 	return reflect.ValueOf(src)
 }

@@ -12,11 +12,23 @@ const AnyNode = "*"
 const AllNode = "**"
 
 const (
-	// ModeSimple old mode, "*" will match all to end.
+	// ModeSimple old mode, simple match group listener.
+	//
+	//  - "*" only allow one and must at end
+	//
+	// Support: "user.*" -> match "user.created" "user.updated"
 	ModeSimple uint8 = iota
+
 	// ModePath path mode.
-	//  - "*" matches any sequence of non-/ characters (like at path.Match())
-	//  - "**" match all characters to end.
+	//
+	//  - "*" matches any sequence of non . characters (like at path.Match())
+	//  - "**" match all characters to end, only allow at start or end on pattern.
+	//
+	// Support like this:
+	// 	"eve.some.*.*"       -> match "eve.some.thing.run" "eve.some.thing.do"
+	// 	"eve.some.*.run"     -> match "eve.some.thing.run", but not match "eve.some.thing.do"
+	// 	"eve.some.**"        -> match any start with "eve.some.". eg: "eve.some.thing.run" "eve.some.thing.do"
+	// 	"**.thing.run"       -> match any ends with ".thing.run". eg: "eve.some.thing.run"
 	ModePath
 )
 
@@ -41,7 +53,7 @@ type Manager struct {
 	// ChanLength for fire events by goroutine
 	ChanLength  int
 	ConsumerNum int
-	// MatchMode match mode. default is ModeSimple
+	// MatchMode event name match mode. default is ModeSimple
 	MatchMode uint8
 
 	ch   chan Event
@@ -135,7 +147,7 @@ func (em *Manager) AddSubscriber(sbr Subscriber) {
 }
 
 func (em *Manager) addListenerItem(name string, li *ListenerItem) {
-	name, _ = goodName(name)
+	name = goodName(name, true)
 	if li.Listener == nil {
 		panicf("event: the event %q listener cannot be empty", name)
 	}
@@ -177,28 +189,9 @@ func (em *Manager) Trigger(name string, params M) (error, Event) {
 
 // Fire trigger event by name. if not found listener, will return (nil, nil)
 func (em *Manager) Fire(name string, params M) (err error, e Event) {
-	var fireAll bool
-	name, fireAll = goodName(name)
-	if fireAll {
-		return em.fireAll(name, params)
-	}
+	name = goodName(name, false)
 
-	// NOTICE: must check the '*' global listeners
-	if false == em.HasListeners(name) && false == em.HasListeners(Wildcard) {
-		// has group listeners. "app.*" "app.db.*"
-		// eg: "app.db.run" will trigger listeners on the "app.db.*"
-		pos := strings.LastIndexByte(name, '.')
-		if pos < 0 || pos == len(name)-1 {
-			return // not found listeners.
-		}
-
-		groupName := name[:pos+1] + Wildcard // "app.db.*"
-		if false == em.HasListeners(groupName) {
-			return // not found listeners.
-		}
-	}
-
-	// call listeners use defined Event
+	// use pre-defined Event
 	if fc, ok := em.eventFc[name]; ok {
 		e = fc() // make new instance
 		if params != nil {
@@ -214,12 +207,6 @@ func (em *Manager) Fire(name string, params M) (err error, e Event) {
 	return
 }
 
-func (em *Manager) definedEvent(e Event) Event {
-	e1 := e
-
-	return e1
-}
-
 // FireEvent fire event by given Event instance
 func (em *Manager) FireEvent(e Event) (err error) {
 	if em.EnableLock {
@@ -231,9 +218,8 @@ func (em *Manager) FireEvent(e Event) (err error) {
 	e.Abort(false)
 	name := e.Name()
 
-	// find matched listeners
-	lq, ok := em.listeners[name]
-	if ok {
+	// fire direct matched listeners. eg: db.user.add
+	if lq, ok := em.listeners[name]; ok {
 		// sort by priority before call.
 		for _, li := range lq.Sort().Items() {
 			err = li.Listener.Handle(e)
@@ -243,8 +229,36 @@ func (em *Manager) FireEvent(e Event) (err error) {
 		}
 	}
 
-	// has group listeners. "app.*" "app.db.*"
-	// eg: "app.run" will trigger listeners on the "app.*"
+	// fire group listeners by wildcard. eg "db.user.*"
+	if em.MatchMode == ModeSimple {
+		err = em.fireSimpleMode(name, e)
+		if err != nil || e.IsAborted() {
+			return
+		}
+	} else {
+		err = em.firePathMode(name, e)
+		if err != nil || e.IsAborted() {
+			return
+		}
+	}
+
+	// fire wildcard event listeners
+	if lq, ok := em.listeners[Wildcard]; ok {
+		for _, li := range lq.Sort().Items() {
+			err = li.Listener.Handle(e)
+			if err != nil || e.IsAborted() {
+				break
+			}
+		}
+	}
+	return
+}
+
+// ModeSimple has group listeners by wildcard. eg "db.user.*"
+//
+// Example:
+//   - event "db.user.add" will trigger listeners on the "db.user.*"
+func (em *Manager) fireSimpleMode(name string, e Event) (err error) {
 	pos := strings.LastIndexByte(name, '.')
 	if pos > 0 && pos < len(name) {
 		groupName := name[:pos+1] + Wildcard // "app.*"
@@ -259,22 +273,31 @@ func (em *Manager) FireEvent(e Event) (err error) {
 		}
 	}
 
-	// has wildcard event listeners
-	if lq, ok := em.listeners[AllNode]; ok {
-		for _, li := range lq.Sort().Items() {
-			err = li.Listener.Handle(e)
-			if err != nil || e.IsAborted() {
-				break
+	return nil
+}
+
+// ModePath fire group listeners by ModePath.
+//
+// Example:
+//   - event "db.user.add" will trigger listeners on the "db.**"
+//   - event "db.user.add" will trigger listeners on the "db.user.*"
+func (em *Manager) firePathMode(name string, e Event) (err error) {
+	if strings.IndexByte(name, '.') < 0 {
+		return nil
+	}
+
+	for pattern, lq := range em.listeners {
+		if matchNodePath(pattern, name, ".") {
+			for _, li := range lq.Sort().Items() {
+				err = li.Listener.Handle(e)
+				if err != nil || e.IsAborted() {
+					return
+				}
 			}
 		}
 	}
-	return
-}
 
-// matchListeners has listeners for the event name.
-func (em *Manager) matchListeners(name string) []string {
-	_, ok := em.listenedNames[name]
-	return ok
+	return nil
 }
 
 // Fire2 alias of the method Fire()
@@ -355,7 +378,7 @@ func (em *Manager) AwaitFire(e Event) (err error) {
 
 // AddEvent add a pre-defined event instance to manager.
 func (em *Manager) AddEvent(e Event) {
-	name, _ := goodName(e.Name())
+	name := goodName(e.Name(), false)
 
 	if ec, ok := e.(Cloneable); ok {
 		em.AddEventFc(name, func() Event {
@@ -370,7 +393,6 @@ func (em *Manager) AddEvent(e Event) {
 
 // AddEventFc add a pre-defined event factory func to manager.
 func (em *Manager) AddEventFc(name string, fc FactoryFunc) {
-	name, _ = goodName(name)
 	em.eventFc[name] = fc
 }
 
