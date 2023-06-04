@@ -2,16 +2,23 @@ package event
 
 import (
 	"reflect"
-	"regexp"
 	"strings"
 	"sync"
 )
 
 // Wildcard event name
 const Wildcard = "*"
+const AnyNode = "*"
+const AllNode = "**"
 
-// regex for check good event name.
-var goodNameReg = regexp.MustCompile(`^[a-zA-Z][\w-.*]*$`)
+const (
+	// ModeSimple old mode, "*" will match all to end.
+	ModeSimple uint8 = iota
+	// ModePath path mode.
+	//  - "*" matches any sequence of non-/ characters (like at path.Match())
+	//  - "**" match all characters to end.
+	ModePath
+)
 
 // M is short name for map[string]...
 type M = map[string]any
@@ -31,13 +38,26 @@ type Manager struct {
 	sync.Mutex
 	// EnableLock enable lock on fire event.
 	EnableLock bool
+	// ChanLength for fire events by goroutine
+	ChanLength  int
+	ConsumerNum int
+	// MatchMode match mode. default is ModeSimple
+	MatchMode uint8
+
+	ch   chan Event
+	once sync.Once
+
 	// name of the manager
 	name string
 	// pool sync.Pool
 	// is a sample for new BasicEvent
 	sample *BasicEvent
+
 	// storage user custom Event instance. you can pre-define some Event instances.
 	events map[string]Event
+	// storage user pre-defined event factory func.
+	eventFc map[string]FactoryFunc
+
 	// storage all event name and ListenerQueue map
 	listeners map[string]*ListenerQueue
 	// storage all event names by listened
@@ -49,17 +69,21 @@ func NewManager(name string) *Manager {
 	em := &Manager{
 		name:   name,
 		sample: &BasicEvent{},
-		events: make(map[string]Event),
+		// events storage
+		eventFc: make(map[string]FactoryFunc),
 		// listeners
 		listeners:     make(map[string]*ListenerQueue),
 		listenedNames: make(map[string]int),
+		// for async fire by goroutine
+		ChanLength:  10,
+		ConsumerNum: 5,
 	}
 
 	return em
 }
 
 /*************************************************************
- * Listener Manage: - register listener
+ * -- register listeners
  *************************************************************/
 
 // AddListener alias of the method On()
@@ -76,8 +100,8 @@ func (em *Manager) Listen(name string, listener Listener, priority ...int) {
 //
 // Usage:
 //
-//	On("evt0", listener)
-//	On("evt0", listener, High)
+//	em.On("evt0", listener)
+//	em.On("evt0", listener, High)
 func (em *Manager) On(name string, listener Listener, priority ...int) {
 	pv := Normal
 	if len(priority) > 0 {
@@ -111,15 +135,12 @@ func (em *Manager) AddSubscriber(sbr Subscriber) {
 }
 
 func (em *Manager) addListenerItem(name string, li *ListenerItem) {
-	if name != Wildcard {
-		name = goodName(name)
-	}
-
+	name, _ = goodName(name)
 	if li.Listener == nil {
-		panic("event: the event '" + name + "' listener cannot be empty")
+		panicf("event: the event %q listener cannot be empty", name)
 	}
 	if reflect.ValueOf(li.Listener).Kind() == reflect.Struct {
-		panic("don't use struct Listener, can be pointer Listener")
+		panicf("event: %q - listener should be pointer of Listener", name)
 	}
 
 	// exists, append it.
@@ -156,7 +177,11 @@ func (em *Manager) Trigger(name string, params M) (error, Event) {
 
 // Fire trigger event by name. if not found listener, will return (nil, nil)
 func (em *Manager) Fire(name string, params M) (err error, e Event) {
-	name = goodName(name)
+	var fireAll bool
+	name, fireAll = goodName(name)
+	if fireAll {
+		return em.fireAll(name, params)
+	}
 
 	// NOTICE: must check the '*' global listeners
 	if false == em.HasListeners(name) && false == em.HasListeners(Wildcard) {
@@ -174,61 +199,25 @@ func (em *Manager) Fire(name string, params M) (err error, e Event) {
 	}
 
 	// call listeners use defined Event
-	if e, ok := em.events[name]; ok {
+	if fc, ok := em.eventFc[name]; ok {
+		e = fc() // make new instance
 		if params != nil {
 			e.SetData(params)
 		}
-
-		err = em.FireEvent(e)
-		return err, e
+	} else {
+		// create a basic event instance
+		e = em.newBasicEvent(name, params)
 	}
 
-	// create a basic event instance
-	e = em.newBasicEvent(name, params)
 	// call listeners handle event
 	err = em.FireEvent(e)
 	return
 }
 
-// AsyncFire async fire event by 'go' keywords
-func (em *Manager) AsyncFire(e Event) {
-	go func(e Event) {
-		_ = em.FireEvent(e)
-	}(e)
-}
+func (em *Manager) definedEvent(e Event) Event {
+	e1 := e
 
-// AwaitFire async fire event by 'go' keywords, but will wait return result
-func (em *Manager) AwaitFire(e Event) (err error) {
-	ch := make(chan error)
-
-	go func(e Event) {
-		err := em.FireEvent(e)
-		ch <- err
-	}(e)
-
-	err = <-ch
-	close(ch)
-	return
-}
-
-// FireBatch fire multi event at once.
-// Usage:
-//
-//	FireBatch("name1", "name2", &MyEvent{})
-func (em *Manager) FireBatch(es ...any) (ers []error) {
-	var err error
-	for _, e := range es {
-		if name, ok := e.(string); ok {
-			err, _ = em.Fire(name, nil)
-		} else if evt, ok := e.(Event); ok {
-			err = em.FireEvent(evt)
-		} // ignore invalid param.
-
-		if err != nil {
-			ers = append(ers, err)
-		}
-	}
-	return
+	return e1
 }
 
 // FireEvent fire event by given Event instance
@@ -271,7 +260,7 @@ func (em *Manager) FireEvent(e Event) (err error) {
 	}
 
 	// has wildcard event listeners
-	if lq, ok := em.listeners[Wildcard]; ok {
+	if lq, ok := em.listeners[AllNode]; ok {
 		for _, li := range lq.Sort().Items() {
 			err = li.Listener.Handle(e)
 			if err != nil || e.IsAborted() {
@@ -282,38 +271,134 @@ func (em *Manager) FireEvent(e Event) (err error) {
 	return
 }
 
+// matchListeners has listeners for the event name.
+func (em *Manager) matchListeners(name string) []string {
+	_, ok := em.listenedNames[name]
+	return ok
+}
+
+// Fire2 alias of the method Fire()
+func (em *Manager) Fire2(name string, params M) (error, Event) {
+	return em.Fire(name, params)
+}
+
+// FireByChan async fire event by go channel
+func (em *Manager) FireByChan(e Event) {
+	// once make
+	em.once.Do(func() {
+		em.makeConsumers()
+	})
+
+	// dispatch event
+	em.ch <- e
+}
+
+// async fire event by 'go' keywords
+func (em *Manager) makeConsumers() {
+	em.ch = make(chan Event, em.ChanLength)
+
+	// make event consumers
+	for i := 0; i < em.ConsumerNum; i++ {
+		go func() {
+			for e := range em.ch {
+				_ = em.FireEvent(e) // ignore async fire error
+			}
+		}()
+	}
+}
+
+// FireBatch fire multi event at once.
+//
+// Usage:
+//
+//	FireBatch("name1", "name2", &MyEvent{})
+func (em *Manager) FireBatch(es ...any) (ers []error) {
+	var err error
+	for _, e := range es {
+		if name, ok := e.(string); ok {
+			err, _ = em.Fire(name, nil)
+		} else if evt, ok := e.(Event); ok {
+			err = em.FireEvent(evt)
+		} // ignore invalid param.
+
+		if err != nil {
+			ers = append(ers, err)
+		}
+	}
+	return
+}
+
+// AsyncFire async fire event by 'go' keywords
+func (em *Manager) AsyncFire(e Event) {
+	go func(e Event) {
+		_ = em.FireEvent(e)
+	}(e)
+}
+
+// AwaitFire async fire event by 'go' keywords, but will wait return result
+func (em *Manager) AwaitFire(e Event) (err error) {
+	ch := make(chan error)
+
+	go func(e Event) {
+		err := em.FireEvent(e)
+		ch <- err
+	}(e)
+
+	err = <-ch
+	close(ch)
+	return
+}
+
 /*************************************************************
  * Event Manage
  *************************************************************/
 
-// AddEvent add a defined event instance to manager.
+// AddEvent add a pre-defined event instance to manager.
 func (em *Manager) AddEvent(e Event) {
-	name := goodName(e.Name())
-	em.events[name] = e
+	name, _ := goodName(e.Name())
+
+	if ec, ok := e.(Cloneable); ok {
+		em.AddEventFc(name, func() Event {
+			return ec.Clone()
+		})
+	} else {
+		em.AddEventFc(name, func() Event {
+			return e
+		})
+	}
 }
 
-// GetEvent get a defined event instance by name
+// AddEventFc add a pre-defined event factory func to manager.
+func (em *Manager) AddEventFc(name string, fc FactoryFunc) {
+	name, _ = goodName(name)
+	em.eventFc[name] = fc
+}
+
+// GetEvent get a pre-defined event instance by name
 func (em *Manager) GetEvent(name string) (e Event, ok bool) {
-	e, ok = em.events[name]
+	fc, ok := em.eventFc[name]
+	if ok {
+		return fc(), true
+	}
 	return
 }
 
-// HasEvent has event check
+// HasEvent has pre-defined event check
 func (em *Manager) HasEvent(name string) bool {
-	_, ok := em.events[name]
+	_, ok := em.eventFc[name]
 	return ok
 }
 
-// RemoveEvent delete Event by name
+// RemoveEvent delete pre-define Event by name
 func (em *Manager) RemoveEvent(name string) {
-	if _, ok := em.events[name]; ok {
-		delete(em.events, name)
+	if _, ok := em.eventFc[name]; ok {
+		delete(em.eventFc, name)
 	}
 }
 
 // RemoveEvents remove all registered events
 func (em *Manager) RemoveEvents() {
-	em.events = map[string]Event{}
+	em.eventFc = map[string]FactoryFunc{}
 }
 
 /*************************************************************
@@ -416,20 +501,7 @@ func (em *Manager) Reset() {
 
 	// reset all
 	em.name = ""
-	em.events = make(map[string]Event)
+	em.eventFc = make(map[string]FactoryFunc)
 	em.listeners = make(map[string]*ListenerQueue)
 	em.listenedNames = make(map[string]int)
-}
-
-func goodName(name string) string {
-	name = strings.TrimSpace(name)
-	if name == "" {
-		panic("event: the event name cannot be empty")
-	}
-
-	if !goodNameReg.MatchString(name) {
-		panic(`event: the event name is invalid, must match regex '^[a-zA-Z][\w-.]*$'`)
-	}
-
-	return name
 }

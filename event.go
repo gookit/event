@@ -13,6 +13,15 @@ type Event interface {
 	IsAborted() bool
 }
 
+// Cloneable interface. event can be cloned.
+type Cloneable interface {
+	Event
+	Clone() Event
+}
+
+// FactoryFunc for create event instance.
+type FactoryFunc func() Event
+
 // BasicEvent a basic event struct define.
 type BasicEvent struct {
 	// event name
