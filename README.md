@@ -10,10 +10,12 @@ Lightweight event management, dispatch tool library implemented by Go
 
 - Support for custom definition event objects
 - Support for adding multiple listeners to an event
-- Supports setting the priority of the event listener. The higher the priority, the higher the trigger.
+- Support setting the priority of the event listener, the higher the priority, the first to trigger
 - Support for a set of event listeners based on the event name prefix `PREFIX.*`.
-  - add `app.*` event listen, trigger `app.run` `app.end`, Both will trigger the `app.*` event at the same time
+  - `ModeSimple` - `app.*` event listen, trigger `app.run` `app.end`, Both will trigger the `app.*` event at the same time
+  - `ModePath`   - `db.**` event listen, trigger `db.run` `db.end`, Only trigger the `db.**` event once
 - Support for using the wildcard `*` to listen for triggers for all events
+- Support async trigger event by `go` channel consumers. use `Async(), FireAsync()`
 - Complete unit testing, unit coverage `> 95%`
 
 ## [中文说明](README.zh-CN.md)
@@ -22,7 +24,7 @@ Lightweight event management, dispatch tool library implemented by Go
 
 ## GoDoc
 
-- [Godoc for github](https://pkg.go.dev/github.com/gookit/event)
+- [Godoc for GitHub](https://pkg.go.dev/github.com/gookit/event)
 
 ## Install
 
@@ -38,7 +40,9 @@ go get github.com/gookit/event
 - `MustTrigger/MustFire(name string, params M) Event`   Trigger event, there will be panic if there is an error
 - `FireEvent(e Event) (err error)`    Trigger an event based on a given event instance
 - `FireBatch(es ...interface{}) (ers []error)` Trigger multiple events at once
-- `AsyncFire(e Event)`   Async fire event by 'go' keywords
+- `Async/FireC(name string, params M)` Push event to `chan`, asynchronous consumption processing
+- `FireAsync(e Event)`  Push event to `chan`, asynchronous consumption processing
+- `AsyncFire(e Event)`  Async fire event by 'go' keywords
 
 ## Quick start
 

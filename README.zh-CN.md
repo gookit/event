@@ -6,14 +6,16 @@
 [![Coverage Status](https://coveralls.io/repos/github/gookit/event/badge.svg?branch=master)](https://coveralls.io/github/gookit/event?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gookit/event)](https://goreportcard.com/report/github.com/gookit/event)
 
-Go 实现的轻量级的事件管理、调度工具库
+`event` Go 实现的轻量级的事件管理、调度工具库
 
-- 支持自定义定义事件对象
+- 支持自定义创建预定义的事件对象
 - 支持对一个事件添加多个监听器
 - 支持设置事件监听器的优先级，优先级越高越先触发
-- 支持根据事件名称前缀 `PREFIX.*` 来进行一组事件监听.
-  - 注册`app.*` 事件的监听，触发 `app.run` `app.end` 时，都将同时会触发 `app.*` 事件
-- 支持使用通配符 `*` 来监听全部事件的触发
+- 支持通过通配符 `*` 来进行一组事件的匹配监听.
+  - `ModeSimple` - 注册 `app.*` 事件的监听，触发 `app.run` `app.end` 时，都将同时会触发 `app.*` 事件
+  - `ModePath` - **NEW** `*` 只匹配一段非 `.` 的字符,可以进行更精细的监听; `**` 匹配任意多个字符,只能用于开头或结尾
+- 支持直接使用通配符 `*` 来监听全部事件的触发
+- 支持触发事件时投递到 `chan`, 异步进行消费处理. 触发: `Async(), FireAsync()`
 - 完善的单元测试，单元覆盖率 `> 95%`
 
 ## [English](README.md)
@@ -22,7 +24,7 @@ English introduction, please see **[EN README](README.md)**
 
 ## GoDoc
 
-- [Godoc for github](https://pkg.go.dev/github.com/gookit/event)
+- [Godoc for GitHub](https://pkg.go.dev/github.com/gookit/event)
 
 ## 安装
 
@@ -35,10 +37,12 @@ go get github.com/gookit/event
 - `On/Listen(name string, listener Listener, priority ...int)` 注册事件监听
 - `Subscribe/AddSubscriber(sbr Subscriber)`  订阅，支持注册多个事件监听
 - `Trigger/Fire(name string, params M) (error, Event)` 触发事件
-- `MustTrigger/MustFire(name string, params M) Event`   触发事件，有错误则会panic
-- `FireEvent(e Event) (err error)`    根据给定的事件实例，触发事件
+- `MustTrigger/MustFire(name string, params M) Event` 触发事件，有错误则会panic
+- `FireEvent(e Event) (err error)` 根据给定的事件实例，触发事件
 - `FireBatch(es ...interface{}) (ers []error)` 一次触发多个事件
-- `AsyncFire(e Event)`   Async fire event by 'go' keywords
+- `Async/FireC(name string, params M)` 投递触事件到 `chan`，异步消费处理
+- `FireAsync(e Event)`  投递触事件到 `chan`，异步消费处理
+- `AsyncFire(e Event)`  简单的通过 `go` 异步触发事件
 
 ## 快速使用
 

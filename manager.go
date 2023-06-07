@@ -6,6 +6,11 @@ import (
 	"sync"
 )
 
+const (
+	defaultChannelSize = 100
+	defaultConsumerNum = 5
+)
+
 // Manager event manager definition. for manage events and listeners
 type Manager struct {
 	Options
@@ -44,8 +49,8 @@ func NewManager(name string, fns ...OptionFn) *Manager {
 	}
 
 	// for async fire by goroutine
-	em.ConsumerNum = 5
-	em.ChanLength = 10
+	em.ConsumerNum = defaultConsumerNum
+	em.ChannelSize = defaultChannelSize
 
 	// apply options
 	return em.WithOptions(fns...)
@@ -154,6 +159,29 @@ func (em *Manager) Trigger(name string, params M) (error, Event) {
 
 // Fire trigger event by name. if not found listener, will return (nil, nil)
 func (em *Manager) Fire(name string, params M) (err error, e Event) {
+	// call listeners handle event
+	e, err = em.fireByName(name, params, false)
+	return
+}
+
+// Async fire event by go channel.
+func (em *Manager) Async(name string, params M) {
+	_, _ = em.fireByName(name, params, true)
+}
+
+// FireC async fire event by go channel. alias of the method Async()
+func (em *Manager) FireC(name string, params M) {
+	_, _ = em.fireByName(name, params, true)
+}
+
+// fire event by name.
+//
+// if useCh is true, will async fire by channel. always return (nil, nil)
+//
+// On useCh=false:
+//   - will call listeners handle event.
+//   - if not found listener, will return (nil, nil)
+func (em *Manager) fireByName(name string, params M, useCh bool) (e Event, err error) {
 	name = goodName(name, false)
 
 	// use pre-defined Event
@@ -163,8 +191,14 @@ func (em *Manager) Fire(name string, params M) (err error, e Event) {
 			e.SetData(params)
 		}
 	} else {
-		// create a basic event instance
+		// create new basic event instance
 		e = em.newBasicEvent(name, params)
+	}
+
+	// fire by channel
+	if useCh {
+		em.FireAsync(e)
+		return nil, nil
 	}
 
 	// call listeners handle event
@@ -182,17 +216,6 @@ func (em *Manager) FireEvent(e Event) (err error) {
 	// ensure aborted is false.
 	e.Abort(false)
 	name := e.Name()
-
-	// fire direct matched listeners. eg: db.user.add
-	if lq, ok := em.listeners[name]; ok {
-		// sort by priority before call.
-		for _, li := range lq.Sort().Items() {
-			err = li.Listener.Handle(e)
-			if err != nil || e.IsAborted() {
-				return
-			}
-		}
-	}
 
 	// fire group listeners by wildcard. eg "db.user.*"
 	if em.MatchMode == ModePath {
@@ -223,6 +246,17 @@ func (em *Manager) FireEvent(e Event) (err error) {
 // Example:
 //   - event "db.user.add" will trigger listeners on the "db.user.*"
 func (em *Manager) fireSimpleMode(name string, e Event) (err error) {
+	// fire direct matched listeners. eg: db.user.add
+	if lq, ok := em.listeners[name]; ok {
+		// sort by priority before call.
+		for _, li := range lq.Sort().Items() {
+			err = li.Listener.Handle(e)
+			if err != nil || e.IsAborted() {
+				return
+			}
+		}
+	}
+
 	pos := strings.LastIndexByte(name, '.')
 
 	if pos > 0 && pos < len(name) {
@@ -247,12 +281,8 @@ func (em *Manager) fireSimpleMode(name string, e Event) (err error) {
 //   - event "db.user.add" will trigger listeners on the "db.**"
 //   - event "db.user.add" will trigger listeners on the "db.user.*"
 func (em *Manager) firePathMode(name string, e Event) (err error) {
-	if strings.IndexByte(name, '.') < 0 {
-		return nil
-	}
-
 	for pattern, lq := range em.listeners {
-		if pattern != name && matchNodePath(pattern, name, ".") {
+		if pattern == name || matchNodePath(pattern, name, ".") {
 			for _, li := range lq.Sort().Items() {
 				err = li.Listener.Handle(e)
 				if err != nil || e.IsAborted() {
@@ -265,14 +295,18 @@ func (em *Manager) firePathMode(name string, e Event) (err error) {
 	return nil
 }
 
-// Fire2 alias of the method Fire()
-func (em *Manager) Fire2(name string, params M) (error, Event) {
-	return em.Fire(name, params)
-}
+// FireAsync async fire event by go channel.
+//
+// Note: if you want to use this method, you should call the method Close() after all events are fired.
+func (em *Manager) FireAsync(e Event) {
+	if em.ConsumerNum <= 0 {
+		em.ConsumerNum = defaultConsumerNum
+	}
+	if em.ChannelSize <= 0 {
+		em.ChannelSize = defaultChannelSize
+	}
 
-// FireByChan async fire event by go channel
-func (em *Manager) FireByChan(e Event) {
-	// once make
+	// once make consumers
 	em.once.Do(func() {
 		em.makeConsumers()
 	})
@@ -283,16 +317,25 @@ func (em *Manager) FireByChan(e Event) {
 
 // async fire event by 'go' keywords
 func (em *Manager) makeConsumers() {
-	em.ch = make(chan Event, em.ChanLength)
+	em.ch = make(chan Event, em.ChannelSize)
 
 	// make event consumers
 	for i := 0; i < em.ConsumerNum; i++ {
 		go func() {
+			// keep running until channel closed
 			for e := range em.ch {
 				_ = em.FireEvent(e) // ignore async fire error
 			}
 		}()
 	}
+}
+
+// Close manager and event channel
+func (em *Manager) Close() error {
+	if em.ch != nil {
+		close(em.ch)
+	}
+	return nil
 }
 
 // FireBatch fire multi event at once.
@@ -316,7 +359,7 @@ func (em *Manager) FireBatch(es ...any) (ers []error) {
 	return
 }
 
-// AsyncFire async fire event by 'go' keywords
+// AsyncFire simple async fire event by 'go' keywords
 func (em *Manager) AsyncFire(e Event) {
 	go func(e Event) {
 		_ = em.FireEvent(e)

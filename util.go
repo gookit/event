@@ -46,8 +46,14 @@ func goodName(name string, isReg bool) string {
 		panic("event: the event name cannot be empty")
 	}
 
-	if isReg && (name == AllNode || name == Wildcard) {
-		return Wildcard
+	// on add listener
+	if isReg {
+		if name == AllNode || name == Wildcard {
+			return Wildcard
+		}
+		if strings.HasPrefix(name, AllNode) {
+			return name
+		}
 	}
 
 	if !goodNameReg.MatchString(name) {

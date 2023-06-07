@@ -1,10 +1,12 @@
 // Package event is lightweight event manager and dispatcher implements by Go.
 package event
 
-// Wildcard event name
-const Wildcard = "*"
-const AnyNode = "*"
-const AllNode = "**"
+// wildcard event name
+const (
+	Wildcard = "*"
+	AnyNode  = "*"
+	AllNode  = "**"
+)
 
 const (
 	// ModeSimple old mode, simple match group listener.
@@ -44,8 +46,8 @@ type ManagerFace interface {
 type Options struct {
 	// EnableLock enable lock on fire event.
 	EnableLock bool
-	// ChanLength for fire events by goroutine
-	ChanLength  int
+	// ChannelSize for fire events by goroutine
+	ChannelSize int
 	ConsumerNum int
 	// MatchMode event name match mode. default is ModeSimple
 	MatchMode uint8
