@@ -15,7 +15,7 @@ import (
 //   - `*` match any to sep
 //   - `**` match any to end. only allow at start or end on pattern.
 func matchNodePath(pattern, s string, sep string) bool {
-	if pattern == AllNode {
+	if pattern == Wildcard {
 		return true
 	}
 

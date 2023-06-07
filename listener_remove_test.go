@@ -49,7 +49,7 @@ func Test_RemoveListener(t *testing.T) {
 		evBus.On(evName, p5)
 		evBus.On(evName, p6)
 
-		evBus.MustFire(evName, nil)
+		evBus.MustTrigger(evName, nil)
 		assert.Equal(t, global.n, 6)
 		assert.Equal(t, global.sum, 231) // 11+22+33+44+55+66=231
 

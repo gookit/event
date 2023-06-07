@@ -6,55 +6,10 @@ import (
 	"sync"
 )
 
-// Wildcard event name
-const Wildcard = "*"
-const AnyNode = "*"
-const AllNode = "**"
-
-const (
-	// ModeSimple old mode, simple match group listener.
-	//
-	//  - "*" only allow one and must at end
-	//
-	// Support: "user.*" -> match "user.created" "user.updated"
-	ModeSimple uint8 = iota
-
-	// ModePath path mode.
-	//
-	//  - "*" matches any sequence of non . characters (like at path.Match())
-	//  - "**" match all characters to end, only allow at start or end on pattern.
-	//
-	// Support like this:
-	// 	"eve.some.*.*"       -> match "eve.some.thing.run" "eve.some.thing.do"
-	// 	"eve.some.*.run"     -> match "eve.some.thing.run", but not match "eve.some.thing.do"
-	// 	"eve.some.**"        -> match any start with "eve.some.". eg: "eve.some.thing.run" "eve.some.thing.do"
-	// 	"**.thing.run"       -> match any ends with ".thing.run". eg: "eve.some.thing.run"
-	ModePath
-)
-
-// M is short name for map[string]...
-type M = map[string]any
-
-// ManagerFace event manager interface
-type ManagerFace interface {
-	// AddEvent events: add event
-	AddEvent(Event)
-	// On listeners: add listeners
-	On(name string, listener Listener, priority ...int)
-	// Fire event
-	Fire(name string, params M) (error, Event)
-}
-
 // Manager event manager definition. for manage events and listeners
 type Manager struct {
+	Options
 	sync.Mutex
-	// EnableLock enable lock on fire event.
-	EnableLock bool
-	// ChanLength for fire events by goroutine
-	ChanLength  int
-	ConsumerNum int
-	// MatchMode event name match mode. default is ModeSimple
-	MatchMode uint8
 
 	ch   chan Event
 	once sync.Once
@@ -77,7 +32,7 @@ type Manager struct {
 }
 
 // NewManager create event manager
-func NewManager(name string) *Manager {
+func NewManager(name string, fns ...OptionFn) *Manager {
 	em := &Manager{
 		name:   name,
 		sample: &BasicEvent{},
@@ -86,11 +41,21 @@ func NewManager(name string) *Manager {
 		// listeners
 		listeners:     make(map[string]*ListenerQueue),
 		listenedNames: make(map[string]int),
-		// for async fire by goroutine
-		ChanLength:  10,
-		ConsumerNum: 5,
 	}
 
+	// for async fire by goroutine
+	em.ConsumerNum = 5
+	em.ChanLength = 10
+
+	// apply options
+	return em.WithOptions(fns...)
+}
+
+// WithOptions create event manager with options
+func (em *Manager) WithOptions(fns ...OptionFn) *Manager {
+	for _, fn := range fns {
+		fn(&em.Options)
+	}
 	return em
 }
 
@@ -230,16 +195,15 @@ func (em *Manager) FireEvent(e Event) (err error) {
 	}
 
 	// fire group listeners by wildcard. eg "db.user.*"
-	if em.MatchMode == ModeSimple {
-		err = em.fireSimpleMode(name, e)
-		if err != nil || e.IsAborted() {
-			return
-		}
-	} else {
+	if em.MatchMode == ModePath {
 		err = em.firePathMode(name, e)
-		if err != nil || e.IsAborted() {
-			return
-		}
+		return
+	}
+
+	// handle mode: ModeSimple
+	err = em.fireSimpleMode(name, e)
+	if err != nil || e.IsAborted() {
+		return
 	}
 
 	// fire wildcard event listeners
@@ -260,6 +224,7 @@ func (em *Manager) FireEvent(e Event) (err error) {
 //   - event "db.user.add" will trigger listeners on the "db.user.*"
 func (em *Manager) fireSimpleMode(name string, e Event) (err error) {
 	pos := strings.LastIndexByte(name, '.')
+
 	if pos > 0 && pos < len(name) {
 		groupName := name[:pos+1] + Wildcard // "app.*"
 
@@ -287,7 +252,7 @@ func (em *Manager) firePathMode(name string, e Event) (err error) {
 	}
 
 	for pattern, lq := range em.listeners {
-		if matchNodePath(pattern, name, ".") {
+		if pattern != name && matchNodePath(pattern, name, ".") {
 			for _, li := range lq.Sort().Items() {
 				err = li.Listener.Handle(e)
 				if err != nil || e.IsAborted() {
@@ -436,7 +401,7 @@ func (em *Manager) newBasicEvent(name string, data M) *BasicEvent {
 	return &cp
 }
 
-// HasListeners has listeners for the event name.
+// HasListeners check has direct listeners for the event name.
 func (em *Manager) HasListeners(name string) bool {
 	_, ok := em.listenedNames[name]
 	return ok

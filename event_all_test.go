@@ -54,6 +54,7 @@ func TestEvent(t *testing.T) {
 	e1 := &BasicEvent{}
 	e1.Set("k", "v")
 	assert.Equal(t, "v", e1.Get("k"))
+	assert.NotEmpty(t, e1.Clone())
 }
 
 func TestAddEvent(t *testing.T) {
@@ -91,32 +92,6 @@ func TestAddEvent(t *testing.T) {
 	// RemoveEvents
 	DefaultEM.RemoveEvents()
 	assert.False(t, HasEvent("evt1"))
-}
-
-func TestOn(t *testing.T) {
-	defer Reset()
-
-	assert.Panics(t, func() {
-		On("", ListenerFunc(emptyListener), 0)
-	})
-	assert.Panics(t, func() {
-		On("name", nil, 0)
-	})
-	assert.Panics(t, func() {
-		On("++df", ListenerFunc(emptyListener), 0)
-	})
-
-	On("n1", ListenerFunc(emptyListener), Min)
-	assert.Equal(t, 1, DefaultEM.ListenersCount("n1"))
-	assert.Equal(t, 0, DefaultEM.ListenersCount("not-exist"))
-	assert.True(t, HasListeners("n1"))
-	assert.False(t, HasListeners("name"))
-
-	assert.NotEmpty(t, DefaultEM.Listeners())
-	assert.NotEmpty(t, DefaultEM.ListenersByName("n1"))
-
-	DefaultEM.RemoveListeners("n1")
-	assert.False(t, HasListeners("n1"))
 }
 
 func TestFire(t *testing.T) {

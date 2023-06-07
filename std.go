@@ -6,6 +6,11 @@ var DefaultEM = NewManager("default")
 // NoMatchedListener error
 // var NoMatchedListener = errors.New("no event listeners matched")
 
+// Std get default event manager
+func Std() *Manager {
+	return DefaultEM
+}
+
 /*************************************************************
  * Listener
  *************************************************************/

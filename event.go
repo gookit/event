@@ -1,6 +1,69 @@
 // Package event is lightweight event manager and dispatcher implements by Go.
 package event
 
+// Wildcard event name
+const Wildcard = "*"
+const AnyNode = "*"
+const AllNode = "**"
+
+const (
+	// ModeSimple old mode, simple match group listener.
+	//
+	//  - "*" only allow one and must at end
+	//
+	// Support: "user.*" -> match "user.created" "user.updated"
+	ModeSimple uint8 = iota
+
+	// ModePath path mode.
+	//
+	//  - "*" matches any sequence of non . characters (like at path.Match())
+	//  - "**" match all characters to end, only allow at start or end on pattern.
+	//
+	// Support like this:
+	// 	"eve.some.*.*"       -> match "eve.some.thing.run" "eve.some.thing.do"
+	// 	"eve.some.*.run"     -> match "eve.some.thing.run", but not match "eve.some.thing.do"
+	// 	"eve.some.**"        -> match any start with "eve.some.". eg: "eve.some.thing.run" "eve.some.thing.do"
+	// 	"**.thing.run"       -> match any ends with ".thing.run". eg: "eve.some.thing.run"
+	ModePath
+)
+
+// M is short name for map[string]...
+type M = map[string]any
+
+// ManagerFace event manager interface
+type ManagerFace interface {
+	// AddEvent events: add event
+	AddEvent(Event)
+	// On listeners: add listeners
+	On(name string, listener Listener, priority ...int)
+	// Fire event
+	Fire(name string, params M) (error, Event)
+}
+
+// Options event manager config options
+type Options struct {
+	// EnableLock enable lock on fire event.
+	EnableLock bool
+	// ChanLength for fire events by goroutine
+	ChanLength  int
+	ConsumerNum int
+	// MatchMode event name match mode. default is ModeSimple
+	MatchMode uint8
+}
+
+// OptionFn event manager config option func
+type OptionFn func(o *Options)
+
+// UsePathMode set event name match mode to ModePath
+func UsePathMode(o *Options) {
+	o.MatchMode = ModePath
+}
+
+// EnableLock enable lock on fire event.
+func EnableLock(o *Options) {
+	o.EnableLock = true
+}
+
 // Event interface
 type Event interface {
 	Name() string
@@ -104,6 +167,12 @@ func (e *BasicEvent) Data() map[string]any {
 // IsAborted check.
 func (e *BasicEvent) IsAborted() bool {
 	return e.aborted
+}
+
+// Clone new instance
+func (e *BasicEvent) Clone() Event {
+	var cp = *e
+	return &cp
 }
 
 // Target get target
