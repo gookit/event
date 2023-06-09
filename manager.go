@@ -1,6 +1,7 @@
 package event
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -8,7 +9,7 @@ import (
 
 const (
 	defaultChannelSize = 100
-	defaultConsumerNum = 5
+	defaultConsumerNum = 3
 )
 
 // Manager event manager definition. for manage events and listeners
@@ -16,8 +17,10 @@ type Manager struct {
 	Options
 	sync.Mutex
 
-	ch   chan Event
-	once sync.Once
+	wg  sync.WaitGroup
+	ch  chan Event
+	oc  sync.Once
+	err error // latest error
 
 	// name of the manager
 	name string
@@ -34,6 +37,11 @@ type Manager struct {
 	listeners map[string]*ListenerQueue
 	// storage all event names by listened
 	listenedNames map[string]int
+}
+
+// NewM create event manager. alias of the NewManager()
+func NewM(name string, fns ...OptionFn) *Manager {
+	return NewManager(name, fns...)
 }
 
 // NewManager create event manager
@@ -68,12 +76,12 @@ func (em *Manager) WithOptions(fns ...OptionFn) *Manager {
  * -- register listeners
  *************************************************************/
 
-// AddListener alias of the method On()
+// AddListener register a event handler/listener. alias of the method On()
 func (em *Manager) AddListener(name string, listener Listener, priority ...int) {
 	em.On(name, listener, priority...)
 }
 
-// Listen alias of the On()
+// Listen register a event handler/listener. alias of the On()
 func (em *Manager) Listen(name string, listener Listener, priority ...int) {
 	em.On(name, listener, priority...)
 }
@@ -93,14 +101,15 @@ func (em *Manager) On(name string, listener Listener, priority ...int) {
 	em.addListenerItem(name, &ListenerItem{pv, listener})
 }
 
-// Subscribe alias of the AddSubscriber()
+// Subscribe add events by subscriber interface. alias of the AddSubscriber()
 func (em *Manager) Subscribe(sbr Subscriber) {
 	em.AddSubscriber(sbr)
 }
 
 // AddSubscriber add events by subscriber interface.
+//
 // you can register multi event listeners in a struct func.
-// more usage please see README or test.
+// more usage please see README or tests.
 func (em *Manager) AddSubscriber(sbr Subscriber) {
 	for name, listener := range sbr.SubscribedEvents() {
 		switch lt := listener.(type) {
@@ -122,7 +131,7 @@ func (em *Manager) addListenerItem(name string, li *ListenerItem) {
 		panicf("event: the event %q listener cannot be empty", name)
 	}
 	if reflect.ValueOf(li.Listener).Kind() == reflect.Struct {
-		panicf("event: %q - listener should be pointer of Listener", name)
+		panicf("event: %q - struct listener must be pointer", name)
 	}
 
 	// exists, append it.
@@ -165,11 +174,17 @@ func (em *Manager) Fire(name string, params M) (err error, e Event) {
 }
 
 // Async fire event by go channel.
+//
+// Note: if you want to use this method, you should
+// call the method Close() after all events are fired.
 func (em *Manager) Async(name string, params M) {
 	_, _ = em.fireByName(name, params, true)
 }
 
 // FireC async fire event by go channel. alias of the method Async()
+//
+// Note: if you want to use this method, you should
+// call the method Close() after all events are fired.
 func (em *Manager) FireC(name string, params M) {
 	_, _ = em.fireByName(name, params, true)
 }
@@ -295,9 +310,19 @@ func (em *Manager) firePathMode(name string, e Event) (err error) {
 	return nil
 }
 
+/*************************************************************
+ * Fire by channel
+ *************************************************************/
+
 // FireAsync async fire event by go channel.
 //
-// Note: if you want to use this method, you should call the method Close() after all events are fired.
+// Note: if you want to use this method, you should
+// call the method Close() after all events are fired.
+//
+// Example:
+//
+//	em := NewManager("test")
+//	em.FireAsync("db.user.add", M{"id": 1001})
 func (em *Manager) FireAsync(e Event) {
 	if em.ConsumerNum <= 0 {
 		em.ConsumerNum = defaultConsumerNum
@@ -307,7 +332,7 @@ func (em *Manager) FireAsync(e Event) {
 	}
 
 	// once make consumers
-	em.once.Do(func() {
+	em.oc.Do(func() {
 		em.makeConsumers()
 	})
 
@@ -321,7 +346,16 @@ func (em *Manager) makeConsumers() {
 
 	// make event consumers
 	for i := 0; i < em.ConsumerNum; i++ {
+		em.wg.Add(1)
+
 		go func() {
+			defer func() {
+				if err := recover(); err != nil {
+					em.err = fmt.Errorf("async consum event error: %v", err)
+				}
+				em.wg.Done()
+			}()
+
 			// keep running until channel closed
 			for e := range em.ch {
 				_ = em.FireEvent(e) // ignore async fire error
@@ -330,7 +364,21 @@ func (em *Manager) makeConsumers() {
 	}
 }
 
-// Close manager and event channel
+// CloseWait close channel and wait all async event done.
+func (em *Manager) CloseWait() error {
+	if err := em.Close(); err != nil {
+		return err
+	}
+	return em.Wait()
+}
+
+// Wait wait all async event done.
+func (em *Manager) Wait() error {
+	em.wg.Wait()
+	return em.err
+}
+
+// Close event channel, deny to fire new event.
 func (em *Manager) Close() error {
 	if em.ch != nil {
 		close(em.ch)
@@ -518,9 +566,7 @@ func (em *Manager) RemoveListeners(name string) {
 }
 
 // Clear alias of the Reset()
-func (em *Manager) Clear() {
-	em.Reset()
-}
+func (em *Manager) Clear() { em.Reset() }
 
 // Reset the manager, clear all data.
 func (em *Manager) Reset() {
@@ -530,7 +576,10 @@ func (em *Manager) Reset() {
 	}
 
 	// reset all
-	em.name = ""
+	em.ch = nil
+	em.oc = sync.Once{}
+	em.wg = sync.WaitGroup{}
+
 	em.eventFc = make(map[string]FactoryFunc)
 	em.listeners = make(map[string]*ListenerQueue)
 	em.listenedNames = make(map[string]int)

@@ -87,7 +87,7 @@ type Cloneable interface {
 // FactoryFunc for create event instance.
 type FactoryFunc func() Event
 
-// BasicEvent a basic event struct define.
+// BasicEvent a built-in implements Event interface
 type BasicEvent struct {
 	// event name
 	name string
@@ -97,6 +97,11 @@ type BasicEvent struct {
 	target any
 	// mark is aborted
 	aborted bool
+}
+
+// New create an event instance
+func New(name string, data M) *BasicEvent {
+	return NewBasic(name, data)
 }
 
 // NewBasic new a basic event instance
