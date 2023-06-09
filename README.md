@@ -78,7 +78,9 @@ func main() {
 
 > Note: The second listener has a higher priority, so it will be executed first.
 
-### Using the wildcard
+## Using the wildcard
+
+### Match mode `ModePath`
 
 Register event listener and name end with wildcard `*`:
 
@@ -111,6 +113,56 @@ func doUpdate() {
 
 Like the above, triggering the `app.db.create` `app.db.update` event
 will trigger the execution of the `dbListener1` listener.
+
+### Match mode `ModePath`
+
+`ModePath` It is a new pattern of `v1.1.0`, and the wildcard `*` matching logic has been adjusted:
+
+- `*` Only match a segment of characters that are not `.`, allowing for finer monitoring and matching
+- `**` matches any number of characters and can only be used at the beginning or end
+
+```go
+em := event.NewManager("test", event.UsePathMode, event.EnableLock)
+```
+
+## Async fire events
+
+### Use `chan` fire events
+
+Added option configuration:
+
+- `ChannelSize` Set buffer size for `chan`
+- `ConsumerNum` Set how many coroutines to start to consume events
+
+```go
+func main() {
+	// Note: close event chan on program exit
+	defer event.CloseWait()
+	// defer event.Close()
+	
+    // register event listener
+    event.On("app.evt1", event.ListenerFunc(func(e event.Event) error {
+        fmt.Printf("handle event: %s\n", e.Name())
+        return nil
+    }), event.Normal)
+    
+    event.On("app.evt1", event.ListenerFunc(func(e event.Event) error {
+        fmt.Printf("handle event: %s\n", e.Name())
+        return nil
+    }), event.High)
+    
+    // ... ...
+    
+    // Asynchronous consumption of events
+    event.FireC("app.evt1", event.M{"arg0": "val0", "arg1": "val1"})
+}
+```
+
+> Note: The event chan should be closed when the program exits. 
+> You can use the following method:
+
+- `event.Close()` Close `chan` and no longer accept new events
+- `event.CloseWait()` Close `chan` and wait for all event processing to complete
 
 ## Write event listeners
 
@@ -188,7 +240,7 @@ type Subscriber interface {
 }
 ```
 
-**example**
+**Example**
 
 > Implementation interface `event.Subscriber`
 

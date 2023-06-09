@@ -78,9 +78,11 @@ func main() {
 
 > Note: 注意：第二个监听器的优先级更高，所以它会先被执行
 
-### 使用通配符
+## 使用通配符
 
-注册事件监听器和名称以通配符`*`结尾:
+### 匹配模式 ModeSimple
+
+`ModeSimple` 是默认模式, 注册事件监听器和名称以通配符 `*` 结尾:
 
 ```go
 func main() {
@@ -93,7 +95,7 @@ func main() {
 }
 ```
 
-在其他逻辑上触发事件:
+**在其他逻辑上触发事件**:
 
 ```go
 func doCreate() {
@@ -111,7 +113,57 @@ func doUpdate() {
 
 像上面这样,触发 `app.db.create` `app.db.update` 事件,都会触发执行 `dbListener1` 监听器.
 
-## 编写事件监听
+### 匹配模式 ModePath
+
+`ModePath` 是 `v1.1.0` 新增的模式,通配符 `*` 匹配逻辑有调整:
+
+- `*` 只匹配一段非 `.` 的字符,可以进行更精细的监听匹配
+- `**` 则匹配任意多个字符,并且只能用于开头或结尾
+
+```go
+em := event.NewManager("test", event.UsePathMode, event.EnableLock)
+```
+
+## 异步消费事件
+
+### 使用 `chan` 消费事件
+
+可以通过配置选项:
+
+- `ChannelSize` 设置 `chan` 的缓冲大小
+- `ConsumerNum` 设置启动多少个协程来消费事件
+
+```go
+func main() {
+	// 注意在，程序退出时关闭事件chan
+	defer event.Close()
+	// defer event.CloseWait()
+	
+    // 注册事件监听器
+    event.On("app.evt1", event.ListenerFunc(func(e event.Event) error {
+        fmt.Printf("handle event: %s\n", e.Name())
+        return nil
+    }), event.Normal)
+    
+    // 注册多个监听器
+    event.On("app.evt1", event.ListenerFunc(func(e event.Event) error {
+        fmt.Printf("handle event: %s\n", e.Name())
+        return nil
+    }), event.High)
+    
+    // ... ...
+    
+    // 异步消费事件
+    event.FireC("app.evt1", event.M{"arg0": "val0", "arg1": "val1"})
+}
+```
+
+> Note: 应当在程序退出时关闭事件chan. 可以使用下面的方法:
+ 
+- `event.Close()` 立即关闭 `chan` 不再接受新的事件
+- `event.CloseWait()` 关闭 `chan` 并等待所有事件处理完成
+
+## 编写事件监听器
 
 ### 使用匿名函数
 
