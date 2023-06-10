@@ -56,6 +56,7 @@ func NewManager(name string, fns ...OptionFn) *Manager {
 		listenedNames: make(map[string]int),
 	}
 
+	em.EnableLock = true
 	// for async fire by goroutine
 	em.ConsumerNum = defaultConsumerNum
 	em.ChannelSize = defaultChannelSize

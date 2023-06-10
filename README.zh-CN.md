@@ -121,7 +121,7 @@ func doUpdate() {
 - `**` 则匹配任意多个字符,并且只能用于开头或结尾
 
 ```go
-em := event.NewManager("test", event.UsePathMode, event.EnableLock)
+em := event.NewManager("test", event.UsePathMode)
 ```
 
 ## 异步消费事件

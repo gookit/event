@@ -224,7 +224,7 @@ func TestManager_Fire_WithWildcard(t *testing.T) {
 
 func TestManager_Fire_usePathMode(t *testing.T) {
 	buf := new(bytes.Buffer)
-	em := event.NewManager("test", event.UsePathMode, event.EnableLock)
+	em := event.NewManager("test", event.UsePathMode, event.EnableLock(true))
 
 	em.Listen("db.user.*", event.ListenerFunc(func(e event.Event) error {
 		_, _ = buf.WriteString("db.user.*|")
@@ -302,7 +302,7 @@ func TestManager_Fire_usePathMode(t *testing.T) {
 }
 
 func TestManager_Fire_AllNode(t *testing.T) {
-	em := event.NewManager("test", event.UsePathMode, event.EnableLock)
+	em := event.NewManager("test", event.UsePathMode, event.EnableLock(false))
 
 	buf := new(bytes.Buffer)
 	em.Listen("**.add", event.ListenerFunc(func(e event.Event) error {
@@ -318,7 +318,7 @@ func TestManager_Fire_AllNode(t *testing.T) {
 }
 
 func TestManager_FireC(t *testing.T) {
-	em := event.NewManager("test", event.UsePathMode, event.EnableLock)
+	em := event.NewManager("test", event.UsePathMode, event.EnableLock(true))
 	defer func(em *event.Manager) {
 		_ = em.Close()
 	}(em)
@@ -361,7 +361,7 @@ func TestManager_FireC(t *testing.T) {
 }
 
 func TestManager_Wait(t *testing.T) {
-	em := event.NewManager("test", event.UsePathMode, event.EnableLock)
+	em := event.NewManager("test", event.UsePathMode)
 
 	buf := new(bytes.Buffer)
 	em.Listen("db.user.*", event.ListenerFunc(func(e event.Event) error {

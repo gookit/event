@@ -44,7 +44,7 @@ type ManagerFace interface {
 
 // Options event manager config options
 type Options struct {
-	// EnableLock enable lock on fire event.
+	// EnableLock enable lock on fire event. default is TRUE.
 	EnableLock bool
 	// ChannelSize for fire events by goroutine
 	ChannelSize int
@@ -62,8 +62,10 @@ func UsePathMode(o *Options) {
 }
 
 // EnableLock enable lock on fire event.
-func EnableLock(o *Options) {
-	o.EnableLock = true
+func EnableLock(enable bool) OptionFn {
+	return func(o *Options) {
+		o.EnableLock = enable
+	}
 }
 
 // Event interface

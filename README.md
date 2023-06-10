@@ -122,7 +122,7 @@ will trigger the execution of the `dbListener1` listener.
 - `**` matches any number of characters and can only be used at the beginning or end
 
 ```go
-em := event.NewManager("test", event.UsePathMode, event.EnableLock)
+em := event.NewManager("test", event.UsePathMode)
 ```
 
 ## Async fire events
