@@ -12,8 +12,10 @@ Lightweight event management, dispatch tool library implemented by Go
 - Support for adding multiple listeners to an event
 - Support setting the priority of the event listener, the higher the priority, the first to trigger
 - Support for a set of event listeners based on the event name prefix `PREFIX.*`.
-  - `ModeSimple` - `app.*` event listen, trigger `app.run` `app.end`, Both will trigger the `app.*` event at the same time
-  - `ModePath`   - `db.**` event listen, trigger `db.run` `db.end`, Only trigger the `db.**` event once
+  - `ModeSimple`(default) - `app.*` event listen, trigger `app.run` `app.end`, Both will fire the `app.*` listener
+- New option: `ModePath`
+  - `*` Only match a segment of characters that are not `.`, allowing for finer monitoring and matching
+  - `**` matches any number of characters and can only be used at the beginning or end
 - Support for using the wildcard `*` to listen for triggers for all events
 - Support async trigger event by `go` channel consumers. use `Async(), FireAsync()`
 - Complete unit testing, unit coverage `> 95%`
