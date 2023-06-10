@@ -131,6 +131,9 @@ em := event.NewManager("test", event.UsePathMode)
 
 ### Use `chan` fire events
 
+You can use the `Async/FireC/FireAsync` method to trigger events, and the events will be written to chan for asynchronous consumption. 
+You can use `CloseWait()` to close the chan and wait for all events to be consumed.
+
 Added option configuration:
 
 - `ChannelSize` Set buffer size for `chan`

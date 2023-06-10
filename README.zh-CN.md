@@ -128,7 +128,9 @@ em := event.NewManager("test", event.UsePathMode)
 
 ### 使用 `chan` 消费事件
 
-可以通过配置选项:
+可以使用 `Async/FireC/FireAsync` 方法触发事件，事件将会写入 chan 异步消费。可以使用 `CloseWait()` 关闭chan并等待事件全部消费完成。
+
+**新增配置选项**:
 
 - `ChannelSize` 设置 `chan` 的缓冲大小
 - `ConsumerNum` 设置启动多少个协程来消费事件
