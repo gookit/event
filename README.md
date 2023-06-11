@@ -13,7 +13,7 @@ Lightweight event management, dispatch tool library implemented by Go
 - Support setting the priority of the event listener, the higher the priority, the first to trigger
 - Support for a set of event listeners based on the event name prefix `PREFIX.*`.
   - `ModeSimple`(default) - `app.*` event listen, trigger `app.run` `app.end`, Both will fire the `app.*` listener
-- New option: `ModePath`
+- New match mode: `ModePath`
   - `*` Only match a segment of characters that are not `.`, allowing for finer monitoring and matching
   - `**` matches any number of characters and can only be used at the beginning or end
 - Support for using the wildcard `*` to listen for triggers for all events

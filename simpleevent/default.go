@@ -18,7 +18,7 @@ func Has(name string) bool {
 	return DefaultEM.HasEvent(name)
 }
 
-// Fire fire handlers by name.
+// Fire handlers by name.
 func Fire(name string, args ...any) error {
 	return DefaultEM.Fire(name, args)
 }
