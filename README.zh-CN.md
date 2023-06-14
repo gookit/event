@@ -122,6 +122,18 @@ func doUpdate() {
 
 ```go
 em := event.NewManager("test", event.UsePathMode)
+
+// 注册事件监听器
+em.On("app.**", appListener)
+em.On("app.db.*", dbListener)
+em.On("app.*.create", createListener)
+em.On("app.*.update", updateListener)
+
+// ... ...
+
+// 触发事件
+// TIP: 将会触发 appListener, dbListener, createListener
+em.Fire("app.db.create", event.M{"arg0": "val0", "arg1": "val1"})
 ```
 
 ## 异步消费事件
@@ -137,10 +149,10 @@ em := event.NewManager("test", event.UsePathMode)
 
 ```go
 func main() {
-	// 注意在，程序退出时关闭事件chan
-	defer event.Close()
-	// defer event.CloseWait()
-	
+	// 注意：在程序退出时关闭事件chan
+	// defer event.Close()
+	defer event.CloseWait()
+
     // 注册事件监听器
     event.On("app.evt1", event.ListenerFunc(func(e event.Event) error {
         fmt.Printf("handle event: %s\n", e.Name())
@@ -334,6 +346,8 @@ event.Fire("e1", nil)
 // OR
 // event.FireEvent(e)
 ```
+
+> **Note**: `AddEvent()` 是用于添加预先定义的公共事件信息，都是在初始化阶段添加，所以没加锁. 在业务中动态创建的Event可以直接使用 `FireEvent()` 触发
 
 ## Gookit 工具包
 

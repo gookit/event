@@ -125,6 +125,18 @@ will trigger the execution of the `dbListener1` listener.
 
 ```go
 em := event.NewManager("test", event.UsePathMode)
+
+// register listener
+em.On("app.**", appListener)
+em.On("app.db.*", dbListener)
+em.On("app.*.create", createListener)
+em.On("app.*.update", updateListener)
+
+// ... ...
+
+// fire event
+// TIP: will trigger appListener, dbListener, createListener
+em.Fire("app.db.create", event.M{"arg0": "val0", "arg1": "val1"})
 ```
 
 ## Async fire events
@@ -338,6 +350,9 @@ event.Fire("e1", nil)
 // OR
 // event.FireEvent(e)
 ```
+
+> **Note**: is used to add pre-defined public event information, which is added in the initialization phase, so it is not locked. 
+> `Event` dynamically created in business can be directly triggered by `FireEvent()`
 
 ## Gookit packages
 
