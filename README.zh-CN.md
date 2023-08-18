@@ -40,8 +40,8 @@ go get github.com/gookit/event
 - `MustTrigger/MustFire(name string, params M) Event` 触发事件，有错误则会panic
 - `FireEvent(e Event) (err error)` 根据给定的事件实例，触发事件
 - `FireBatch(es ...interface{}) (ers []error)` 一次触发多个事件
-- `Async/FireC(name string, params M)` 投递触事件到 `chan`，异步消费处理
-- `FireAsync(e Event)`  投递触事件到 `chan`，异步消费处理
+- `Async/FireC(name string, params M)` 投递事件到 `chan`，异步消费处理
+- `FireAsync(e Event)`  投递事件到 `chan`，异步消费处理
 - `AsyncFire(e Event)`  简单的通过 `go` 异步触发事件
 
 ## 快速使用
@@ -140,7 +140,9 @@ em.Fire("app.db.create", event.M{"arg0": "val0", "arg1": "val1"})
 
 ### 使用 `chan` 消费事件
 
-可以使用 `Async/FireC/FireAsync` 方法触发事件，事件将会写入 chan 异步消费。可以使用 `CloseWait()` 关闭chan并等待事件全部消费完成。
+可以使用 `Async/FireC/FireAsync` 方法触发事件，事件将会写入 `chan` 异步消费。可以使用 `CloseWait()` 关闭chan并等待事件全部消费完成。
+
+> **Note**: `event.NewBasic()/event.New()` 可以创建通用的Event实例； `Async/FireC` 无需构建 Event，内部根据参数构建的。
 
 **新增配置选项**:
 
@@ -169,6 +171,7 @@ func main() {
     
     // 异步消费事件
     event.FireC("app.evt1", event.M{"arg0": "val0", "arg1": "val1"})
+	event.FireAsync(event.New("app.evt1", event.M{"arg0": "val2"})
 }
 ```
 
