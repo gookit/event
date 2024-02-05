@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/gookit/event"
-	"github.com/stretchr/testify/assert"
+	"github.com/gookit/goutil/testutil/assert"
 )
 
 type testListener struct {

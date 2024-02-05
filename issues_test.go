@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/gookit/event"
-	"github.com/stretchr/testify/assert"
+	"github.com/gookit/goutil/testutil/assert"
 )
 
 type testNotify struct{}
@@ -85,4 +86,30 @@ func TestIssues_20(t *testing.T) {
 	assert.Equal(t, "app.user.add-INHERE|", buf.String())
 
 	// dump.P(buf.String())
+}
+
+// https://github.com/gookit/event/issues/61
+// prepare: 此时设置 ConsumerNum = 10, 每个任务耗时1s, 触发100个任务
+// expected: 10s左右执行完所有任务
+// actual: 执行了 100s左右
+func TestIssues_61(t *testing.T) {
+	var em = event.NewManager("default", func(o *event.Options) {
+		o.ConsumerNum = 10
+		o.EnableLock = false
+	})
+	defer em.CloseWait()
+
+	var listener event.ListenerFunc = func(e event.Event) error {
+		time.Sleep(1 * time.Second)
+		fmt.Println("event received!", e.Name(), "index", e.Get("arg0"))
+		return nil
+	}
+
+	em.On("app.evt1", listener, event.Normal)
+
+	for i := 0; i < 20; i++ {
+		em.FireAsync(event.New("app.evt1", event.M{"arg0": i}))
+	}
+
+	fmt.Println("publish event finished!")
 }

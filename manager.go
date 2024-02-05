@@ -56,7 +56,7 @@ func NewManager(name string, fns ...OptionFn) *Manager {
 		listenedNames: make(map[string]int),
 	}
 
-	em.EnableLock = true
+	// em.EnableLock = true
 	// for async fire by goroutine
 	em.ConsumerNum = defaultConsumerNum
 	em.ChannelSize = defaultChannelSize
@@ -325,13 +325,6 @@ func (em *Manager) firePathMode(name string, e Event) (err error) {
 //	em := NewManager("test")
 //	em.FireAsync("db.user.add", M{"id": 1001})
 func (em *Manager) FireAsync(e Event) {
-	if em.ConsumerNum <= 0 {
-		em.ConsumerNum = defaultConsumerNum
-	}
-	if em.ChannelSize <= 0 {
-		em.ChannelSize = defaultChannelSize
-	}
-
 	// once make consumers
 	em.oc.Do(func() {
 		em.makeConsumers()
@@ -343,6 +336,13 @@ func (em *Manager) FireAsync(e Event) {
 
 // async fire event by 'go' keywords
 func (em *Manager) makeConsumers() {
+	if em.ConsumerNum <= 0 {
+		em.ConsumerNum = defaultConsumerNum
+	}
+	if em.ChannelSize <= 0 {
+		em.ChannelSize = defaultChannelSize
+	}
+
 	em.ch = make(chan Event, em.ChannelSize)
 
 	// make event consumers
@@ -450,7 +450,9 @@ func (em *Manager) AddEvent(e Event) {
 
 // AddEventFc add a pre-defined event factory func to manager.
 func (em *Manager) AddEventFc(name string, fc FactoryFunc) {
+	em.Lock()
 	em.eventFc[name] = fc
+	em.Unlock()
 }
 
 // GetEvent get a pre-defined event instance by name

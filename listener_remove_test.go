@@ -3,7 +3,7 @@ package event
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/gookit/goutil/testutil/assert"
 )
 
 type globalTestVal struct {
