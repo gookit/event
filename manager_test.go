@@ -379,3 +379,12 @@ func TestManager_Wait(t *testing.T) {
 	assert.Equal(t, "db.user.*|", str)
 	buf.Reset()
 }
+
+func TestManager_Once(t *testing.T) {
+	em := event.NewManager("test")
+
+	em.Once("evt1", event.ListenerFunc(emptyListener))
+	assert.True(t, em.HasListeners("evt1"))
+	em.Trigger("evt1", nil)
+	assert.False(t, em.HasListeners("evt1"))
+}

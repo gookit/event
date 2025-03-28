@@ -250,3 +250,11 @@ func TestOn(t *testing.T) {
 	std.RemoveListeners("n1")
 	assert.False(t, event.HasListeners("n1"))
 }
+func TestOnce(t *testing.T) {
+	defer event.Reset()
+
+	event.Once("evt1", event.ListenerFunc(emptyListener))
+	assert.True(t, event.Std().HasListeners("evt1"))
+	event.Trigger("evt1", nil)
+	assert.False(t, event.Std().HasListeners("evt1"))
+}

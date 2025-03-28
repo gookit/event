@@ -87,6 +87,16 @@ func (em *Manager) Listen(name string, listener Listener, priority ...int) {
 	em.On(name, listener, priority...)
 }
 
+// Listen register a event handler/listener. trigger once.
+func (em *Manager) Once(name string, listener Listener, priority ...int) {
+	var listenerOnce Listener
+	listenerOnce = ListenerFunc(func(e Event) error {
+		em.RemoveListener(name, listenerOnce)
+		return listener.Handle(e)
+	})
+	em.On(name, listenerOnce, priority...)
+}
+
 // On register a event handler/listener. can setting priority.
 //
 // Usage:
