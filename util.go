@@ -1,6 +1,7 @@
 package event
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"regexp"
@@ -41,25 +42,34 @@ var goodNameReg = regexp.MustCompile(`^[a-zA-Z][\w-.*]*$`)
 
 // goodName check event name is valid.
 func goodName(name string, isReg bool) string {
+	name, err := goodNameOrErr(name, isReg)
+	if err != nil {
+		panic(err)
+	}
+	return name
+}
+
+// goodNameOrErr check event name is valid.
+func goodNameOrErr(name string, isReg bool) (string, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
-		panic("event: the event name cannot be empty")
+		return "", errors.New("event: the event name cannot be empty")
 	}
 
 	// on add listener
 	if isReg {
 		if name == AllNode || name == Wildcard {
-			return Wildcard
+			return Wildcard, nil
 		}
 		if strings.HasPrefix(name, AllNode) {
-			return name
+			return name, nil
 		}
 	}
 
 	if !goodNameReg.MatchString(name) {
-		panic(`event: name is invalid, must match regex:` + goodNameReg.String())
+		return name, errors.New(`event: name is invalid, must match regex:` + goodNameReg.String())
 	}
-	return name
+	return name, nil
 }
 
 func panicf(format string, args ...any) {

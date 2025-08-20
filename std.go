@@ -1,20 +1,20 @@
 package event
 
+import (
+	"context"
+)
+
 // std default event manager
 var std = NewManager("default")
 
 // Std get default event manager
-func Std() *Manager {
-	return std
-}
+func Std() *Manager { return std }
 
 // Config set default event manager options
-func Config(fn ...OptionFn) {
-	std.WithOptions(fn...)
-}
+func Config(fn ...OptionFn) { std.WithOptions(fn...) }
 
 /*************************************************************
- * Listener
+ * region Listener
  *************************************************************/
 
 // On register a listener to the event. alias of Listen()
@@ -33,82 +33,62 @@ func Listen(name string, listener Listener, priority ...int) {
 }
 
 // Subscribe register a listener to the event
-func Subscribe(sbr Subscriber) {
-	std.Subscribe(sbr)
-}
+func Subscribe(sbr Subscriber) { std.Subscribe(sbr) }
 
 // AddSubscriber register a listener to the event
-func AddSubscriber(sbr Subscriber) {
-	std.AddSubscriber(sbr)
-}
+func AddSubscriber(sbr Subscriber) { std.AddSubscriber(sbr) }
 
 // AsyncFire simple async fire event by 'go' keywords
-func AsyncFire(e Event) {
-	std.AsyncFire(e)
-}
+func AsyncFire(e Event) { std.AsyncFire(e) }
 
 // Async fire event by channel
-func Async(name string, params M) {
-	std.Async(name, params)
-}
+func Async(name string, params M) { std.Async(name, params) }
 
 // FireAsync fire event by channel
-func FireAsync(e Event) {
-	std.FireAsync(e)
-}
+func FireAsync(e Event) { std.FireAsync(e) }
 
 // CloseWait close chan and wait for all async events done.
-func CloseWait() error {
-	return std.CloseWait()
-}
+func CloseWait() error { return std.CloseWait() }
 
 // Trigger alias of Fire
-func Trigger(name string, params M) (error, Event) {
-	return std.Fire(name, params)
-}
+func Trigger(name string, params M) (error, Event) { return std.Fire(name, params) }
 
 // Fire listeners by name.
-func Fire(name string, params M) (error, Event) {
-	return std.Fire(name, params)
+func Fire(name string, params M) (error, Event) { return std.Fire(name, params) }
+
+// FireCtx listeners by name with context.
+func FireCtx(ctx context.Context, name string, params M) (error, Event) {
+	return std.FireCtx(ctx, name, params)
 }
 
 // FireEvent fire listeners by Event instance.
-func FireEvent(e Event) error {
-	return std.FireEvent(e)
+func FireEvent(e Event) error { return std.FireEvent(e) }
+
+// FireEventCtx fire listeners by Event instance with context.
+func FireEventCtx(ctx context.Context, e Event) error {
+	return std.FireEventCtx(ctx, e)
 }
 
 // TriggerEvent alias of FireEvent
-func TriggerEvent(e Event) error {
-	return std.FireEvent(e)
-}
+func TriggerEvent(e Event) error { return std.FireEvent(e) }
 
 // MustFire fire event by name. will panic on error
-func MustFire(name string, params M) Event {
-	return std.MustFire(name, params)
-}
+func MustFire(name string, params M) Event { return std.MustFire(name, params) }
 
 // MustTrigger alias of MustFire
-func MustTrigger(name string, params M) Event {
-	return std.MustFire(name, params)
-}
+func MustTrigger(name string, params M) Event { return std.MustFire(name, params) }
 
 // FireBatch fire multi event at once.
-func FireBatch(es ...any) []error {
-	return std.FireBatch(es...)
-}
+func FireBatch(es ...any) []error { return std.FireBatch(es...) }
 
 // HasListeners has listeners for the event name.
-func HasListeners(name string) bool {
-	return std.HasListeners(name)
-}
+func HasListeners(name string) bool { return std.HasListeners(name) }
 
 // Reset the default event manager
-func Reset() {
-	std.Clear()
-}
+func Reset() { std.Clear() }
 
 /*************************************************************
- * Event
+ * region Event
  *************************************************************/
 
 // AddEvent add a pre-defined event.

@@ -53,6 +53,7 @@ func (s testSubscriber2) SubscribedEvents() map[string]any {
 }
 
 type testEvent struct {
+	event.ContextTrait
 	name  string
 	data  map[string]any
 	abort bool

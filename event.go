@@ -1,6 +1,10 @@
 // Package event is lightweight event manager and dispatcher implements by Go.
 package event
 
+import (
+	"context"
+)
+
 // wildcard event name
 const (
 	Wildcard = "*"
@@ -35,7 +39,7 @@ type M = map[string]any
 // ManagerFace event manager interface
 type ManagerFace interface {
 	// AddEvent events: add event
-	AddEvent(Event)
+	AddEvent(Event) error
 	// On listeners: add listeners
 	On(name string, listener Listener, priority ...int)
 	// Fire event
@@ -57,9 +61,7 @@ type Options struct {
 type OptionFn func(o *Options)
 
 // UsePathMode set event name match mode to ModePath
-func UsePathMode(o *Options) {
-	o.MatchMode = ModePath
-}
+func UsePathMode(o *Options) { o.MatchMode = ModePath }
 
 // EnableLock enable lock on fire event.
 func EnableLock(enable bool) OptionFn {
@@ -78,6 +80,9 @@ type Event interface {
 	SetData(M) Event
 	Abort(bool)
 	IsAborted() bool
+	// Context support
+	Context() context.Context
+	WithContext(ctx context.Context)
 }
 
 // Cloneable interface. event can be cloned.
@@ -86,11 +91,18 @@ type Cloneable interface {
 	Clone() Event
 }
 
+// ContextAble context-able event interface
+type ContextAble interface {
+	Context() context.Context
+	WithContext(ctx context.Context)
+}
+
 // FactoryFunc for create event instance.
 type FactoryFunc func() Event
 
 // BasicEvent a built-in implements Event interface
 type BasicEvent struct {
+	ContextTrait
 	// event name
 	name string
 	// user data.
@@ -102,9 +114,7 @@ type BasicEvent struct {
 }
 
 // New create an event instance
-func New(name string, data M) *BasicEvent {
-	return NewBasic(name, data)
-}
+func New(name string, data M) *BasicEvent { return NewBasic(name, data) }
 
 // NewBasic new a basic event instance
 func NewBasic(name string, data M) *BasicEvent {
@@ -119,9 +129,7 @@ func NewBasic(name string, data M) *BasicEvent {
 }
 
 // Abort event loop exec
-func (e *BasicEvent) Abort(abort bool) {
-	e.aborted = abort
-}
+func (e *BasicEvent) Abort(abort bool) { e.aborted = abort }
 
 // Fill event data
 func (e *BasicEvent) Fill(target any, data M) *BasicEvent {
@@ -134,16 +142,13 @@ func (e *BasicEvent) Fill(target any, data M) *BasicEvent {
 }
 
 // AttachTo add current event to the event manager.
-func (e *BasicEvent) AttachTo(em ManagerFace) {
-	em.AddEvent(e)
-}
+func (e *BasicEvent) AttachTo(em ManagerFace) error { return em.AddEvent(e) }
 
 // Get data by index
 func (e *BasicEvent) Get(key string) any {
 	if v, ok := e.data[key]; ok {
 		return v
 	}
-
 	return nil
 }
 
@@ -159,40 +164,31 @@ func (e *BasicEvent) Set(key string, val any) {
 	if e.data == nil {
 		e.data = make(map[string]any)
 	}
-
 	e.data[key] = val
 }
 
 // Name get event name
-func (e *BasicEvent) Name() string {
-	return e.name
-}
+func (e *BasicEvent) Name() string { return e.name }
 
 // Data get all data
-func (e *BasicEvent) Data() map[string]any {
-	return e.data
-}
+func (e *BasicEvent) Data() map[string]any { return e.data }
 
 // IsAborted check.
-func (e *BasicEvent) IsAborted() bool {
-	return e.aborted
+func (e *BasicEvent) IsAborted() bool { return e.aborted }
+
+// Target get target
+func (e *BasicEvent) Target() any { return e.target }
+
+// SetName set event name
+func (e *BasicEvent) SetName(name string) *BasicEvent {
+	e.name = name
+	return e
 }
 
 // Clone new instance
 func (e *BasicEvent) Clone() Event {
 	var cp = *e
 	return &cp
-}
-
-// Target get target
-func (e *BasicEvent) Target() any {
-	return e.target
-}
-
-// SetName set event name
-func (e *BasicEvent) SetName(name string) *BasicEvent {
-	e.name = name
-	return e
 }
 
 // SetData set data to the event
@@ -207,4 +203,23 @@ func (e *BasicEvent) SetData(data M) Event {
 func (e *BasicEvent) SetTarget(target any) *BasicEvent {
 	e.target = target
 	return e
+}
+
+// ContextTrait event context trait
+type ContextTrait struct {
+	// context
+	ctx context.Context
+}
+
+// Context get context
+func (t *ContextTrait) Context() context.Context {
+	if t.ctx == nil {
+		return context.Background()
+	}
+	return t.ctx
+}
+
+// WithContext set context
+func (t *ContextTrait) WithContext(ctx context.Context) {
+	t.ctx = ctx
 }
