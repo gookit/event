@@ -332,3 +332,21 @@ func (em *Manager) AwaitFire(e Event) (err error) {
 	close(ch)
 	return
 }
+
+/*************************************************************
+ * region Helper methods
+ *************************************************************/
+
+// CloseWait close channel and wait all async event done.
+func (em *Manager) CloseWait() error {
+	if err := em.Close(); err != nil {
+		return err
+	}
+	return em.Wait()
+}
+
+// Wait wait all async event done.
+func (em *Manager) Wait() error {
+	em.wg.Wait()
+	return em.err
+}

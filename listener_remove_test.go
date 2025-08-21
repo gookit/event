@@ -15,7 +15,7 @@ type testListenerCalc struct {
 	owner *globalTestVal
 }
 
-func (l testListenerCalc) Handle(e Event) error {
+func (l testListenerCalc) Handle(_ Event) error {
 	l.owner.n++
 	l.owner.sum += l.bind
 	return nil
@@ -136,12 +136,12 @@ func Test_RemoveListener(t *testing.T) {
 
 var globalStatic = globalTestVal{}
 
-func testFuncCalc1(e Event) error {
+func testFuncCalc1(_ Event) error {
 	globalStatic.n++
 	globalStatic.sum += 11
 	return nil
 }
-func testFuncCalc2(e Event) error {
+func testFuncCalc2(_ Event) error {
 	globalStatic.n++
 	globalStatic.sum += 22
 	return nil

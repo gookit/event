@@ -38,6 +38,19 @@ func Subscribe(sbr Subscriber) { std.Subscribe(sbr) }
 // AddSubscriber register a listener to the event
 func AddSubscriber(sbr Subscriber) { std.AddSubscriber(sbr) }
 
+// HasListeners has listeners for the event name.
+func HasListeners(name string) bool { return std.HasListeners(name) }
+
+// Reset the default event manager
+func Reset() { std.Clear() }
+
+// CloseWait close chan and wait for all async events done.
+func CloseWait() error { return std.CloseWait() }
+
+/*************************************************************
+ * region Trigger
+ *************************************************************/
+
 // AsyncFire simple async fire event by 'go' keywords
 func AsyncFire(e Event) { std.AsyncFire(e) }
 
@@ -75,12 +88,6 @@ func MustTrigger(name string, params M) Event { return std.MustFire(name, params
 
 // FireBatch fire multi event at once.
 func FireBatch(es ...any) []error { return std.FireBatch(es...) }
-
-// HasListeners has listeners for the event name.
-func HasListeners(name string) bool { return std.HasListeners(name) }
-
-// Reset the default event manager
-func Reset() { std.Clear() }
 
 /*************************************************************
  * region Event

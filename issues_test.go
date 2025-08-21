@@ -89,6 +89,32 @@ func TestIssues_20(t *testing.T) {
 	// dump.P(buf.String())
 }
 
+// https://github.com/gookit/event/issues/53
+// 我现在 在事件1里面， 触发启动事件2 是 启动不了的，貌似他会进入一个死循环进行卡死状态
+func TestIssues_53(t *testing.T) {
+	buf := new(bytes.Buffer)
+	mgr := event.NewManager("test")
+
+	handler1 := event.ListenerFunc(func(e event.Event) error {
+		_, _ = fmt.Fprintf(buf, "%s-%s|", e.Name(), e.Get("user"))
+		// trigger event2
+		err, _ := mgr.Fire("app.event2", event.M{"user": "INHERE"})
+		return err
+	})
+
+	handler2 := event.ListenerFunc(func(e event.Event) error {
+		_, _ = fmt.Fprintf(buf, "%s-%s|", e.Name(), e.Get("user"))
+		return nil
+	})
+
+	mgr.On("app.event1", handler1)
+	mgr.On("app.event2", handler2)
+
+	err, _ := mgr.Fire("app.event1", event.M{"user": "INHERE"})
+	assert.NoError(t, err)
+	assert.StrContains(t, "app.event1-INHERE|app.event2-INHERE|", buf.String())
+}
+
 // https://github.com/gookit/event/issues/61
 // prepare: 此时设置 ConsumerNum = 10, 每个任务耗时1s, 触发100个任务
 // expected: 10s左右执行完所有任务

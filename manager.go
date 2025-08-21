@@ -228,8 +228,6 @@ func (em *Manager) RemoveEvents() {
 // newBasicEvent create new BasicEvent by clone em.sample
 func (em *Manager) newBasicEvent(name string, data M) *BasicEvent {
 	var cp = *em.sample
-	cp.ctx = context.Background()
-
 	cp.SetName(name)
 	cp.SetData(data)
 	return &cp

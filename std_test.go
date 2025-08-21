@@ -166,7 +166,7 @@ func TestFireEvent(t *testing.T) {
 		}
 		return nil
 	}))
-	evt2 := event.New("evt2", event.M{"name": "inhere"})
+	evt2 := event.NewEvent("evt2", event.M{"name": "inhere"})
 	err = event.FireEventCtx(ctx, evt2)
 	assert.NoError(t, err)
 	assert.Equal(t, "ctx-value1", ctxVal)
