@@ -47,9 +47,6 @@ func Async(name string, params M) { std.Async(name, params) }
 // FireAsync fire event by channel
 func FireAsync(e Event) { std.FireAsync(e) }
 
-// CloseWait close chan and wait for all async events done.
-func CloseWait() error { return std.CloseWait() }
-
 // Trigger alias of Fire
 func Trigger(name string, params M) (error, Event) { return std.Fire(name, params) }
 
@@ -90,21 +87,13 @@ func Reset() { std.Clear() }
  *************************************************************/
 
 // AddEvent add a pre-defined event.
-func AddEvent(e Event) {
-	std.AddEvent(e)
-}
+func AddEvent(e Event) error { return std.AddEvent(e) }
 
 // AddEventFc add a pre-defined event factory func to manager.
-func AddEventFc(name string, fc FactoryFunc) {
-	std.AddEventFc(name, fc)
-}
+func AddEventFc(name string, fc FactoryFunc) error { return std.AddEventFc(name, fc) }
 
 // GetEvent get event by name.
-func GetEvent(name string) (Event, bool) {
-	return std.GetEvent(name)
-}
+func GetEvent(name string) (Event, bool) { return std.GetEvent(name) }
 
 // HasEvent has event check.
-func HasEvent(name string) bool {
-	return std.HasEvent(name)
-}
+func HasEvent(name string) bool { return std.HasEvent(name) }

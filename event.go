@@ -120,6 +120,9 @@ type BasicEvent struct {
 // New create an event instance
 func New(name string, data M) *BasicEvent { return NewBasic(name, data) }
 
+// NewEvent create an event instance
+func NewEvent(name string, data M) *BasicEvent { return NewBasic(name, data) }
+
 // NewBasic new a basic event instance
 func NewBasic(name string, data M) *BasicEvent {
 	if data == nil {

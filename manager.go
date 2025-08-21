@@ -168,11 +168,11 @@ func (em *Manager) AddEvent(e Event) error {
 	}
 
 	if ec, ok := e.(Cloneable); ok {
-		em.AddEventFc(name, func() Event {
+		em.addEventFc(name, func() Event {
 			return ec.Clone()
 		})
 	} else {
-		em.AddEventFc(name, func() Event {
+		em.addEventFc(name, func() Event {
 			return e
 		})
 	}
@@ -180,7 +180,15 @@ func (em *Manager) AddEvent(e Event) error {
 }
 
 // AddEventFc add a pre-defined event factory func to manager.
-func (em *Manager) AddEventFc(name string, fc FactoryFunc) {
+func (em *Manager) AddEventFc(name string, fc FactoryFunc) (err error) {
+	name, err = goodNameOrErr(name, false)
+	if err == nil {
+		em.addEventFc(name, fc)
+	}
+	return err
+}
+
+func (em *Manager) addEventFc(name string, fc FactoryFunc) {
 	em.Lock()
 	em.eventFc[name] = fc
 	em.Unlock()
@@ -234,9 +242,7 @@ func (em *Manager) HasListeners(name string) bool {
 }
 
 // Listeners get all listeners
-func (em *Manager) Listeners() map[string]*ListenerQueue {
-	return em.listeners
-}
+func (em *Manager) Listeners() map[string]*ListenerQueue { return em.listeners }
 
 // ListenersByName get listeners by given event name
 func (em *Manager) ListenersByName(name string) *ListenerQueue {
@@ -302,6 +308,14 @@ func (em *Manager) RemoveListeners(name string) {
 
 // Clear alias of the Reset()
 func (em *Manager) Clear() { em.Reset() }
+
+// Close event channel, deny to fire new event.
+func (em *Manager) Close() error {
+	if em.ch != nil {
+		close(em.ch)
+	}
+	return nil
+}
 
 // Reset the manager, clear all data.
 func (em *Manager) Reset() {

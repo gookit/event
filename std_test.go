@@ -2,6 +2,7 @@ package event_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -19,18 +20,17 @@ func TestAddEvent(t *testing.T) {
 	event.Std().RemoveEvents()
 
 	// no name
-	assert.Panics(t, func() {
-		event.AddEvent(&event.BasicEvent{})
-	})
+	assert.Err(t, event.AddEvent(&event.BasicEvent{}))
 
 	_, ok := event.GetEvent("evt1")
 	assert.False(t, ok)
 
 	// event.AddEvent
 	e := event.NewBasic("evt1", event.M{"k1": "inhere"})
-	event.AddEvent(e)
+	assert.NoErr(t, event.AddEvent(e))
 	// add by AttachTo
-	event.NewBasic("evt2", nil).AttachTo(event.Std())
+	err := event.NewBasic("evt2", nil).AttachTo(event.Std())
+	assert.NoError(t, err)
 
 	assert.False(t, e.IsAborted())
 	assert.True(t, event.HasEvent("evt1"))
@@ -54,15 +54,17 @@ func TestAddEvent(t *testing.T) {
 func TestAddEventFc(t *testing.T) {
 	// clear all
 	event.Reset()
-	event.AddEvent(&testEvent{
+	err := event.AddEvent(&testEvent{
 		name: "evt1",
 	})
+	assert.NoError(t, err)
 	assert.True(t, event.HasEvent("evt1"))
 
-	event.AddEventFc("test", func() event.Event {
+	err = event.AddEventFc("test", func() event.Event {
 		return event.NewBasic("test", nil)
 	})
 
+	assert.NoError(t, err)
 	assert.True(t, event.HasEvent("test"))
 }
 
@@ -82,7 +84,9 @@ func TestFire(t *testing.T) {
 	assert.Equal(t, "evt1", e.Name())
 	assert.Equal(t, "event: evt1", buf.String())
 
-	event.NewBasic("evt2", nil).AttachTo(event.Std())
+	err = event.NewBasic("evt2", nil).AttachTo(event.Std())
+	assert.NoError(t, err)
+
 	event.On("evt2", event.ListenerFunc(func(e event.Event) error {
 		assert.Equal(t, "evt2", e.Name())
 		assert.Equal(t, "v", e.Get("k"))
@@ -127,7 +131,7 @@ func TestFireEvent(t *testing.T) {
 	buf := new(bytes.Buffer)
 
 	evt1 := event.NewBasic("evt1", nil).Fill(nil, event.M{"n": "inhere"})
-	event.AddEvent(evt1)
+	assert.NoErr(t, event.AddEvent(evt1))
 
 	assert.True(t, event.HasEvent("evt1"))
 	assert.False(t, event.HasEvent("not-exist"))
