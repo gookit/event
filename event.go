@@ -80,19 +80,23 @@ type Event interface {
 	SetData(M) Event
 	Abort(bool)
 	IsAborted() bool
-	// Context support
-	Context() context.Context
-	WithContext(ctx context.Context)
 }
 
 // Cloneable interface. event can be cloned.
+//
+// Check and convert:
+//	if ec, ok := e.(Cloneable); ok {}
 type Cloneable interface {
 	Event
 	Clone() Event
 }
 
 // ContextAble context-able event interface
+//
+// Check and convert in listener:
+//	if ec, ok := e.(ContextAble); ok {}
 type ContextAble interface {
+	Event
 	Context() context.Context
 	WithContext(ctx context.Context)
 }

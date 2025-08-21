@@ -65,9 +65,7 @@ func FireCtx(ctx context.Context, name string, params M) (error, Event) {
 func FireEvent(e Event) error { return std.FireEvent(e) }
 
 // FireEventCtx fire listeners by Event instance with context.
-func FireEventCtx(ctx context.Context, e Event) error {
-	return std.FireEventCtx(ctx, e)
-}
+func FireEventCtx(ctx context.Context, e Event) error { return std.FireEventCtx(ctx, e) }
 
 // TriggerEvent alias of FireEvent
 func TriggerEvent(e Event) error { return std.FireEvent(e) }

@@ -140,16 +140,36 @@ func TestFireEvent(t *testing.T) {
 	assert.True(t, event.HasListeners("evt1"))
 	assert.False(t, event.HasListeners("not-exist"))
 
+	// FireEvent
 	err := event.FireEvent(evt1)
 	assert.NoError(t, err)
 	assert.Equal(t, "event: evt1, params: n=inhere", buf.String())
 	buf.Reset()
 
+	// TriggerEvent
 	err = event.TriggerEvent(evt1)
 	assert.NoError(t, err)
 	assert.Equal(t, "event: evt1, params: n=inhere", buf.String())
 	buf.Reset()
 
+	// FireEventCtx
+	var ctxVal any
+	ctx := context.WithValue(context.Background(), "ctx1", "ctx-value1")
+	event.Listen("evt2", event.ListenerFunc(func(e event.Event) error {
+		ec, ok := e.(event.ContextAble)
+		if ok {
+			ctxVal = ec.Context().Value("ctx1")
+		}
+		return nil
+	}))
+	evt2 := event.New("evt2", event.M{"name": "inhere"})
+	err = event.FireEventCtx(ctx, evt2)
+	assert.NoError(t, err)
+	assert.Equal(t, "ctx-value1", ctxVal)
+	assert.Equal(t, "ctx-value1", evt2.Context().Value("ctx1"))
+	buf.Reset()
+
+	// AsyncFire
 	event.AsyncFire(evt1)
 	time.Sleep(time.Second)
 	assert.Equal(t, "event: evt1, params: n=inhere", buf.String())

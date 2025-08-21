@@ -28,7 +28,7 @@ func (em *Manager) Trigger(name string, params M) (error, Event) { return em.Fir
 // Fire trigger event by name. if not found listener, will return (nil, nil)
 func (em *Manager) Fire(name string, params M) (err error, e Event) {
 	// call listeners handle event
-	e, err = em.fireByName(name, params, false)
+	e, err = em.fireByNameCtx(em.ctx, name, params, false)
 	return
 }
 
@@ -62,32 +62,8 @@ func (em *Manager) FireC(name string, params M) {
 // On useCh=false:
 //   - will call listeners handle event.
 //   - if not found listener, will return (nil, nil)
-func (em *Manager) fireByName(name string, params M, useCh bool) (e Event, err error) {
-	name, err = goodNameOrErr(name, false)
-	if err != nil {
-		return nil, err
-	}
-
-	// use pre-defined Event
-	if fc, ok := em.eventFc[name]; ok {
-		e = fc() // make new instance
-		if params != nil {
-			e.SetData(params)
-		}
-	} else {
-		// create new basic event instance
-		e = em.newBasicEvent(name, params)
-	}
-
-	// fire by channel
-	if useCh {
-		em.FireAsync(e)
-		return nil, nil
-	}
-
-	// call listeners handle event
-	err = em.FireEvent(e)
-	return
+func (em *Manager) fireByName(name string, params M, useCh bool) (Event, error) {
+	return em.fireByNameCtx(em.ctx, name, params, useCh)
 }
 
 // fireByNameCtx fire event by name with context
@@ -108,9 +84,6 @@ func (em *Manager) fireByNameCtx(ctx context.Context, name string, params M, use
 		e = em.newBasicEvent(name, params)
 	}
 
-	// set context
-	e.WithContext(ctx)
-
 	// fire by channel
 	if useCh {
 		em.FireAsync(e)
@@ -123,38 +96,11 @@ func (em *Manager) fireByNameCtx(ctx context.Context, name string, params M, use
 }
 
 // FireEvent fire event by given Event instance
-func (em *Manager) FireEvent(e Event) (err error) {
-	if em.EnableLock {
-		em.Lock()
-		defer em.Unlock()
+func (em *Manager) FireEvent(e Event) error {
+	if ec, ok := e.(ContextAble); ok {
+		return em.FireEventCtx(ec.Context(), e)
 	}
-
-	// ensure aborted is false.
-	e.Abort(false)
-	name := e.Name()
-
-	// fire group listeners by wildcard. eg "db.user.*"
-	if em.MatchMode == ModePath {
-		err = em.firePathMode(name, e)
-		return
-	}
-
-	// handle mode: ModeSimple
-	err = em.fireSimpleMode(name, e)
-	if err != nil || e.IsAborted() {
-		return
-	}
-
-	// fire wildcard event listeners
-	if lq, ok := em.listeners[Wildcard]; ok {
-		for _, li := range lq.Sort().Items() {
-			err = li.Listener.Handle(e)
-			if err != nil || e.IsAborted() {
-				break
-			}
-		}
-	}
-	return
+	return em.FireEventCtx(em.ctx, e)
 }
 
 // FireEventCtx fire event by given Event instance with context
@@ -167,19 +113,19 @@ func (em *Manager) FireEventCtx(ctx context.Context, e Event) (err error) {
 	// ensure aborted is false.
 	e.Abort(false)
 	name := e.Name()
-	ctx := context.Background()
-	if ce, ok := e.(ContextAble); ok {
-		ctx = ce.Context()
+	// set context
+	if ec, ok := e.(ContextAble); ok {
+		ec.WithContext(ctx)
 	}
 
 	// fire group listeners by wildcard. eg "db.user.*"
 	if em.MatchMode == ModePath {
-		err = em.firePathModeCtx(ctx, name, e)
+		err = em.firePathMode(ctx, name, e)
 		return
 	}
 
 	// handle mode: ModeSimple
-	err = em.fireSimpleModeCtx(ctx, name, e)
+	err = em.fireSimpleMode(ctx, name, e)
 	if err != nil || e.IsAborted() {
 		return
 	}
@@ -188,11 +134,13 @@ func (em *Manager) FireEventCtx(ctx context.Context, e Event) (err error) {
 	if lq, ok := em.listeners[Wildcard]; ok {
 		for _, li := range lq.Sort().Items() {
 			// Check context cancellation
-			select {
-			case <-ctx.Done():
-				err = ctx.Err()
-				return
-			default:
+			if ctx != nil {
+				select {
+				case <-ctx.Done():
+					err = ctx.Err()
+					return
+				default:
+				}
 			}
 
 			err = li.Listener.Handle(e)
@@ -208,48 +156,19 @@ func (em *Manager) FireEventCtx(ctx context.Context, e Event) (err error) {
 //
 // Example:
 //   - event "db.user.add" will trigger listeners on the "db.user.*"
-func (em *Manager) fireSimpleMode(name string, e Event) (err error) {
-	// fire direct matched listeners. eg: db.user.add
-	if lq, ok := em.listeners[name]; ok {
-		// sort by priority before call.
-		for _, li := range lq.Sort().Items() {
-			err = li.Listener.Handle(e)
-			if err != nil || e.IsAborted() {
-				return
-			}
-		}
-	}
-
-	pos := strings.LastIndexByte(name, '.')
-
-	if pos > 0 && pos < len(name) {
-		groupName := name[:pos+1] + Wildcard // "app.*"
-
-		if lq, ok := em.listeners[groupName]; ok {
-			for _, li := range lq.Sort().Items() {
-				err = li.Listener.Handle(e)
-				if err != nil || e.IsAborted() {
-					return
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-// fireSimpleModeCtx ModeSimple has group listeners by wildcard with context. eg "db.user.*"
-func (em *Manager) fireSimpleModeCtx(ctx context.Context, name string, e Event) (err error) {
+func (em *Manager) fireSimpleMode(ctx context.Context, name string, e Event) (err error) {
 	// fire direct matched listeners. eg: db.user.add
 	if lq, ok := em.listeners[name]; ok {
 		// sort by priority before call.
 		for _, li := range lq.Sort().Items() {
 			// Check context cancellation
-			select {
-			case <-ctx.Done():
-				err = ctx.Err()
-				return
-			default:
+			if ctx != nil {
+				select {
+				case <-ctx.Done():
+					err = ctx.Err()
+					return
+				default:
+				}
 			}
 
 			err = li.Listener.Handle(e)
@@ -261,17 +180,20 @@ func (em *Manager) fireSimpleModeCtx(ctx context.Context, name string, e Event) 
 
 	pos := strings.LastIndexByte(name, '.')
 
+	// exists group
 	if pos > 0 && pos < len(name) {
 		groupName := name[:pos+1] + Wildcard // "app.*"
 
 		if lq, ok := em.listeners[groupName]; ok {
 			for _, li := range lq.Sort().Items() {
 				// Check context cancellation
-				select {
-				case <-ctx.Done():
-					err = ctx.Err()
-					return
-				default:
+				if ctx != nil {
+					select {
+					case <-ctx.Done():
+						err = ctx.Err()
+						return
+					default:
+					}
 				}
 
 				err = li.Listener.Handle(e)
@@ -285,41 +207,23 @@ func (em *Manager) fireSimpleModeCtx(ctx context.Context, name string, e Event) 
 	return nil
 }
 
-// ModePath fire group listeners by ModePath.
+// firePathMode fire group listeners by ModePath.
 //
 // Example:
 //   - event "db.user.add" will trigger listeners on the "db.**"
 //   - event "db.user.add" will trigger listeners on the "db.user.*"
-func (em *Manager) firePathMode(name string, e Event) (err error) {
-	for pattern, lq := range em.listeners {
-		if pattern == name || matchNodePath(pattern, name, ".") {
-			for _, li := range lq.Sort().Items() {
-				err = li.Listener.Handle(e)
-				if err != nil || e.IsAborted() {
-					return
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-// firePathModeCtx fire group listeners by ModePath with context.
-//
-// Example:
-//   - event "db.user.add" will trigger listeners on the "db.**"
-//   - event "db.user.add" will trigger listeners on the "db.user.*"
-func (em *Manager) firePathModeCtx(ctx context.Context, name string, e Event) (err error) {
+func (em *Manager) firePathMode(ctx context.Context, name string, e Event) (err error) {
 	for pattern, lq := range em.listeners {
 		if pattern == name || matchNodePath(pattern, name, ".") {
 			for _, li := range lq.Sort().Items() {
 				// Check context cancellation
-				select {
-				case <-ctx.Done():
-					err = ctx.Err()
-					return
-				default:
+				if ctx != nil {
+					select {
+					case <-ctx.Done():
+						err = ctx.Err()
+						return
+					default:
+					}
 				}
 
 				err = li.Listener.Handle(e)
@@ -385,28 +289,6 @@ func (em *Manager) makeConsumers() {
 			}
 		}()
 	}
-}
-
-// CloseWait close channel and wait all async event done.
-func (em *Manager) CloseWait() error {
-	if err := em.Close(); err != nil {
-		return err
-	}
-	return em.Wait()
-}
-
-// Wait wait all async event done.
-func (em *Manager) Wait() error {
-	em.wg.Wait()
-	return em.err
-}
-
-// Close event channel, deny to fire new event.
-func (em *Manager) Close() error {
-	if em.ch != nil {
-		close(em.ch)
-	}
-	return nil
 }
 
 // FireBatch fire multi event at once.

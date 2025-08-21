@@ -2,6 +2,7 @@ package event_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -12,7 +13,7 @@ import (
 
 type testNotify struct{}
 
-func (notify *testNotify) Handle(e event.Event) error {
+func (notify *testNotify) Handle(_ event.Event) error {
 	isRun = true
 	return nil
 }
@@ -112,4 +113,66 @@ func TestIssues_61(t *testing.T) {
 	}
 
 	fmt.Println("publish event finished!")
+}
+
+// https://github.com/gookit/event/issues/78
+// It is expected to support event passing context, timeout control, and log trace passing such as trace ID information.
+// 希望事件支持通过上下文，超时控制和日志跟踪传递，例如跟踪ID信息。
+func TestIssues_78(t *testing.T) {
+	// Test with context
+	ctx := context.Background()
+
+	// Create a context with value (simulating trace ID)
+	ctx = context.WithValue(ctx, "trace_id", "trace-12345")
+
+	// Create a context with timeout
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	manager := event.NewManager("test")
+
+	var traceID string
+	var ctxErr error
+
+	// Register event listener
+	manager.On("app.test", event.ListenerFunc(func(e event.Event) error {
+		ec, ok := e.(event.ContextAble)
+		if !ok {
+			return nil
+		}
+
+		// Get trace ID from context
+		traceID, _ = ec.Context().Value("trace_id").(string)
+
+		// Check if context is canceled
+		select {
+		case <-ec.Context().Done():
+			ctxErr = ec.Context().Err()
+			return ctxErr
+		default:
+		}
+
+		return nil
+	}))
+
+	// Test firing event with context
+	err, _ := manager.FireCtx(ctx, "app.test", event.M{"key": "value"})
+	assert.NoError(t, err)
+	assert.Equal(t, "trace-12345", traceID)
+	assert.Nil(t, ctxErr)
+
+	// Test with std
+	stdTraceID := ""
+	event.On("std.test", event.ListenerFunc(func(e event.Event) error {
+		ec, ok := e.(event.ContextAble)
+		if !ok {
+			return nil
+		}
+		stdTraceID, _ = ec.Context().Value("trace_id").(string)
+		return nil
+	}))
+
+	err, _ = event.FireCtx(ctx, "std.test", event.M{"key": "value"})
+	assert.NoError(t, err)
+	assert.Equal(t, "trace-12345", stdTraceID)
 }
