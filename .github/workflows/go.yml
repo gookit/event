@@ -18,11 +18,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go_version: [1.19, '1.20', 1.21, 1.22, 1.23, 1.24]
+        go_version: [1.19, 1.21, 1.22, 1.23, 1.24, 1.25]
 
     steps:
     - name: Check out code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     # https://github.com/actions/setup-go
     - name: Use Go ${{ matrix.go_version }}
       timeout-minutes: 3
@@ -36,12 +36,12 @@ jobs:
       run: go test -coverprofile="profile.cov" ./...
 
     - name: Send coverage
-      uses: shogo82148/actions-goveralls@v1.9.1
-      if: ${{ matrix.os == 'ubuntu-latest' }}
+      uses: shogo82148/actions-goveralls@v1
       with:
         path-to-profile: profile.cov
         flag-name: Go-${{ matrix.go_version }}
         parallel: true
+        shallow: true # 忽略请求报错
 
   # notifies that all test jobs are finished.
   # https://github.com/shogo82148/actions-goveralls
@@ -49,6 +49,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: shogo82148/actions-goveralls@v1.9.1
+      - uses: shogo82148/actions-goveralls@v1
         with:
+          shallow: true
           parallel-finished: true

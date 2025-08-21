@@ -39,9 +39,10 @@ go get github.com/gookit/event
 - `On/Listen(name string, listener Listener, priority ...int)` Register event listener
 - `Subscribe/AddSubscriber(sbr Subscriber)`  Subscribe to support registration of multiple event listeners
 - `Trigger/Fire(name string, params M) (error, Event)` Trigger event by name and params
+- `FireCtx(ctx context.Context, name string, params M) (error, Event)` Trigger event with context
 - `MustTrigger/MustFire(name string, params M) Event`   Trigger event, there will be panic if there is an error
 - `FireEvent(e Event) (err error)`    Trigger an event based on a given event instance
-- `FireBatch(es ...interface{}) (ers []error)` Trigger multiple events at once
+- `FireBatch(es ...any) (ers []error)` Trigger multiple events at once
 - `Async/FireC(name string, params M)` Push event to `chan`, asynchronous consumption processing
 - `FireAsync(e Event)`  Push event to `chan`, asynchronous consumption processing
 - `AsyncFire(e Event)`  Async fire event by 'go' keywords
@@ -253,7 +254,7 @@ type Subscriber interface {
 	// SubscribedEvents register event listeners
 	// key: is event name
 	// value: can be Listener or ListenerItem interface
-	SubscribedEvents() map[string]interface{}
+	SubscribedEvents() map[string]any
 }
 ```
 
@@ -274,8 +275,8 @@ type MySubscriber struct {
 	// ooo
 }
 
-func (s *MySubscriber) SubscribedEvents() map[string]interface{} {
-	return map[string]interface{}{
+func (s *MySubscriber) SubscribedEvents() map[string]any {
+	return map[string]any{
 		"e1": event.ListenerFunc(s.e1Handler),
 		"e2": event.ListenerItem{
 			Priority: event.AboveNormal,
@@ -304,11 +305,10 @@ you can implement the `event.Event` interface.
 // Event interface
 type Event interface {
 	Name() string
-	// Target() interface{}
-	Get(key string) interface{}
-	Add(key string, val interface{})
-	Set(key string, val interface{})
-	Data() map[string]interface{}
+	Get(key string) any
+	Add(key string, val any)
+	Set(key string, val any)
+	Data() map[string]any
 	SetData(M) Event
 	Abort(bool)
 	IsAborted() bool
