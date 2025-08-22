@@ -141,6 +141,27 @@ func TestIssues_61(t *testing.T) {
 	fmt.Println("publish event finished!")
 }
 
+// https://github.com/gookit/event/issues/67 我这有 投递了一个异步事件, 经常发现 这个事件执行了几次 后面都没 执行了
+func TestIssues_67(t *testing.T) {
+	em := event.NewManager("test", event.WithConsumerNum(10), event.WithChannelSize(100))
+
+	var counter int
+	em.On("new.member", event.ListenerFunc(func(e event.Event) error {
+		counter++
+		fmt.Print(e.Get("memberId"), " ")
+		return nil
+	}))
+
+	total := 200
+	for i := 0; i < total; i++ {
+		em.Async("new.member", event.M{"memberId": i + 1, "superiorId": "superior23"})
+	}
+	em.MustCloseWait() // MUST wait all async event done
+
+	fmt.Println("Total:", counter)
+	assert.Eq(t, total, counter)
+}
+
 // https://github.com/gookit/event/issues/78
 // It is expected to support event passing context, timeout control, and log trace passing such as trace ID information.
 // 希望事件支持通过上下文，超时控制和日志跟踪传递，例如跟踪ID信息。

@@ -50,8 +50,9 @@ type ManagerFace interface {
 type Options struct {
 	// EnableLock enable lock on fire event. default is False.
 	EnableLock bool
-	// ChannelSize for fire events by goroutine
+	// ChannelSize for fire events by goroutine. default: 100
 	ChannelSize int
+	// ConsumerNum for fire events by goroutine. default: 3
 	ConsumerNum int
 	// MatchMode event name match mode. default is ModeSimple
 	MatchMode uint8
@@ -62,6 +63,20 @@ type OptionFn func(o *Options)
 
 // UsePathMode set event name match mode to ModePath
 func UsePathMode(o *Options) { o.MatchMode = ModePath }
+
+// WithChannelSize set channel size for async fire event.
+func WithChannelSize(size int) OptionFn {
+	return func(o *Options) {
+		o.ChannelSize = size
+	}
+}
+
+// WithConsumerNum set consumer num for async fire
+func WithConsumerNum(num int) OptionFn {
+	return func(o *Options) {
+		o.ConsumerNum = num
+	}
+}
 
 // EnableLock enable lock on fire event.
 func EnableLock(enable bool) OptionFn {
