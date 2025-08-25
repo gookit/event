@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/gookit/goutil/x/basefn"
 )
 
 /*************************************************************
@@ -336,6 +338,9 @@ func (em *Manager) AwaitFire(e Event) (err error) {
 /*************************************************************
  * region Helper methods
  *************************************************************/
+
+// MustCloseWait close channel and wait all async event done. panic if error
+func (em *Manager) MustCloseWait() { basefn.PanicErr(em.CloseWait()) }
 
 // CloseWait close channel and wait all async event done.
 func (em *Manager) CloseWait() error {

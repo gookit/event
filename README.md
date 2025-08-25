@@ -1,7 +1,7 @@
 # Event 
 
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/gookit/event?style=flat-square)
-[![GoDoc](https://godoc.org/github.com/gookit/event?status.svg)](https://pkg.go.dev/github.com/gookit/event)
+[![GoDoc](https://pkg.go.dev/badge/github.com/gookit/event.svg)](https://pkg.go.dev/github.com/gookit/event)
 [![Actions Status](https://github.com/gookit/event/workflows/Unit-Tests/badge.svg)](https://github.com/gookit/event/actions)
 [![Coverage Status](https://coveralls.io/repos/github/gookit/event/badge.svg?branch=master)](https://coveralls.io/github/gookit/event?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gookit/event)](https://goreportcard.com/report/github.com/gookit/event)

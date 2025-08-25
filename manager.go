@@ -79,17 +79,17 @@ func (em *Manager) WithOptions(fns ...OptionFn) *Manager {
  * region Register listeners
  *************************************************************/
 
-// AddListener register a event handler/listener. alias of the method On()
+// AddListener register an event handler/listener. alias of the method On()
 func (em *Manager) AddListener(name string, listener Listener, priority ...int) {
 	em.On(name, listener, priority...)
 }
 
-// Listen register a event handler/listener. alias of the On()
+// Listen register an event handler/listener. alias of the On()
 func (em *Manager) Listen(name string, listener Listener, priority ...int) {
 	em.On(name, listener, priority...)
 }
 
-// Listen register a event handler/listener. trigger once.
+// Once register an event handler/listener. trigger once.
 func (em *Manager) Once(name string, listener Listener, priority ...int) {
 	var listenerOnce Listener
 	listenerOnce = ListenerFunc(func(e Event) error {

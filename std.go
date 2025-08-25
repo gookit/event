@@ -22,7 +22,7 @@ func On(name string, listener Listener, priority ...int) {
 	std.On(name, listener, priority...)
 }
 
-// On register a listener to the event. trigger once
+// Once register a listener to the event. trigger once
 func Once(name string, listener Listener, priority ...int) {
 	std.Once(name, listener, priority...)
 }
