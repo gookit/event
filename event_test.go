@@ -119,5 +119,5 @@ func TestEvent(t *testing.T) {
 	e1.Set("k", "v")
 	assert.Equal(t, "v", e1.Get("k"))
 	// assert.NotEmpty(t, e1.Clone())
-	assert.NotEmpty(t, e1.Context())
+	assert.NotNil(t, e1.Context())
 }
