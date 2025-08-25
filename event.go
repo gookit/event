@@ -207,12 +207,6 @@ func (e *BasicEvent) SetName(name string) *BasicEvent {
 	return e
 }
 
-// Clone new instance
-func (e *BasicEvent) Clone() Event {
-	var cp = *e
-	return &cp
-}
-
 // SetData set data to the event
 func (e *BasicEvent) SetData(data M) Event {
 	if data != nil {

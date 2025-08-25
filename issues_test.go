@@ -162,6 +162,34 @@ func TestIssues_67(t *testing.T) {
 	assert.Eq(t, total, counter)
 }
 
+type MyEventI68 struct {
+	event.BasicEvent
+	customData string
+}
+
+func (e *MyEventI68) CustomData() string {
+	return e.customData
+}
+
+// https://github.com/gookit/event/issues/68 Custom events failed to execute
+func TestIssues_68(t *testing.T) {
+	e := &MyEventI68{customData: "hello"}
+	e.SetName("e1")
+	defer event.Reset()
+	assert.NoErr(t, event.AddEvent(e))
+
+	// add listener
+	event.On("e1", event.ListenerFunc(func(e event.Event) error {
+		fmt.Printf("custom Data: %s\n", e.(*MyEventI68).CustomData())
+		return nil
+	}))
+
+	// trigger
+	err, e2 := event.Fire("e1", nil)
+	assert.NoErr(t, err)
+	assert.Eq(t, "e1", e2.Name())
+}
+
 // https://github.com/gookit/event/issues/78
 // It is expected to support event passing context, timeout control, and log trace passing such as trace ID information.
 // 希望事件支持通过上下文，超时控制和日志跟踪传递，例如跟踪ID信息。
