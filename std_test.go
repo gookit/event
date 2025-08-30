@@ -16,7 +16,7 @@ var emptyListener = func(e event.Event) error {
 }
 
 func TestAddEvent(t *testing.T) {
-	defer event.Reset()
+	event.Reset()
 	event.Std().RemoveEvents()
 
 	// no name
@@ -110,6 +110,7 @@ func TestFire(t *testing.T) {
 }
 
 func TestAddSubscriber(t *testing.T) {
+	event.Reset()
 	event.AddSubscriber(&testSubscriber{})
 
 	assert.True(t, event.HasListeners("e1"))
@@ -122,14 +123,12 @@ func TestAddSubscriber(t *testing.T) {
 	assert.Panics(t, func() {
 		event.Subscribe(testSubscriber2{})
 	})
-
-	event.Reset()
 }
 
 func TestFireEvent(t *testing.T) {
-	defer event.Reset()
-	buf := new(bytes.Buffer)
+	event.Reset()
 
+	buf := new(bytes.Buffer)
 	evt1 := event.NewBasic("evt1", nil).Fill(nil, event.M{"n": "inhere"})
 	assert.NoErr(t, event.AddEvent(evt1))
 
@@ -166,11 +165,13 @@ func TestFireEvent(t *testing.T) {
 		}
 		return nil
 	}))
+
 	evt2 := event.NewEvent("evt2", event.M{"name": "inhere"})
 	err = event.FireEventCtx(ctx, evt2)
 	assert.NoError(t, err)
 	assert.Equal(t, "ctx-value1", ctxVal)
-	assert.Equal(t, "ctx-value1", evt2.Context().Value("ctx1"))
+	// ce, ok := evt2.(event.ContextAble)
+	// assert.Equal(t, "ctx-value1", evt2.Context().Value("ctx1"))
 	buf.Reset()
 
 	// AsyncFire
@@ -183,7 +184,7 @@ func TestAsync(t *testing.T) {
 	event.Reset()
 	event.Config(event.UsePathMode)
 
-	buf := new(bytes.Buffer)
+	buf := new(safeBuffer)
 	event.On("test", event.ListenerFunc(func(e event.Event) error {
 		buf.WriteString("test:")
 		buf.WriteString(e.Get("key").(string))
@@ -194,8 +195,8 @@ func TestAsync(t *testing.T) {
 	event.Async("test", event.M{"key": "val1"})
 	te := &testEvent{name: "test", data: event.M{"key": "val2"}}
 	event.FireAsync(te)
-
 	assert.NoError(t, event.CloseWait())
+
 	s := buf.String()
 	assert.Contains(t, s, "test:val1|")
 	assert.Contains(t, s, "test:val2|")
@@ -232,7 +233,7 @@ func TestFire_notExist(t *testing.T) {
 }
 
 func TestMustFire(t *testing.T) {
-	defer event.Reset()
+	event.Reset()
 
 	event.On("n1", event.ListenerFunc(func(e event.Event) error {
 		return fmt.Errorf("an error")
@@ -249,7 +250,7 @@ func TestMustFire(t *testing.T) {
 }
 
 func TestOn(t *testing.T) {
-	defer event.Reset()
+	event.Reset()
 
 	assert.Panics(t, func() {
 		event.On("", event.ListenerFunc(emptyListener), 0)
@@ -275,10 +276,11 @@ func TestOn(t *testing.T) {
 	assert.False(t, event.HasListeners("n1"))
 }
 func TestOnce(t *testing.T) {
-	defer event.Reset()
+	event.Reset()
 
 	event.Once("evt1", event.ListenerFunc(emptyListener))
 	assert.True(t, event.Std().HasListeners("evt1"))
-	event.Trigger("evt1", nil)
+	err, _ := event.Trigger("evt1", nil)
+	assert.Nil(t, err)
 	assert.False(t, event.Std().HasListeners("evt1"))
 }

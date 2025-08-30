@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -124,7 +125,7 @@ func TestIssues_61(t *testing.T) {
 		o.ConsumerNum = 10
 		o.EnableLock = false
 	})
-	defer em.CloseWait()
+	defer em.MustCloseWait()
 
 	var listener event.ListenerFunc = func(e event.Event) error {
 		time.Sleep(1 * time.Second)
@@ -145,9 +146,9 @@ func TestIssues_61(t *testing.T) {
 func TestIssues_67(t *testing.T) {
 	em := event.NewManager("test", event.WithConsumerNum(10), event.WithChannelSize(100))
 
-	var counter int
+	var counter atomic.Int32
 	em.On("new.member", event.ListenerFunc(func(e event.Event) error {
-		counter++
+		counter.Add(1)
 		fmt.Print(e.Get("memberId"), " ")
 		return nil
 	}))
@@ -158,8 +159,8 @@ func TestIssues_67(t *testing.T) {
 	}
 	em.MustCloseWait() // MUST wait all async event done
 
-	fmt.Println("Total:", counter)
-	assert.Eq(t, total, counter)
+	fmt.Println("Total:", counter.Load())
+	assert.Eq(t, int32(total), counter.Load())
 }
 
 type MyEventI68 struct {
@@ -175,7 +176,7 @@ func (e *MyEventI68) CustomData() string {
 func TestIssues_68(t *testing.T) {
 	e := &MyEventI68{customData: "hello"}
 	e.SetName("e1")
-	defer event.Reset()
+	event.Reset()
 	assert.NoErr(t, event.AddEvent(e))
 
 	// add listener

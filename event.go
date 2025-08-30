@@ -100,6 +100,7 @@ type Event interface {
 // Cloneable interface. event can be cloned.
 //
 // Check and convert:
+//
 //	if ec, ok := e.(Cloneable); ok {}
 type Cloneable interface {
 	Event
@@ -109,6 +110,7 @@ type Cloneable interface {
 // ContextAble context-able event interface
 //
 // Check and convert in listener:
+//
 //	if ec, ok := e.(ContextAble); ok {}
 type ContextAble interface {
 	Event
@@ -121,7 +123,6 @@ type FactoryFunc func() Event
 
 // BasicEvent a built-in implements Event interface
 type BasicEvent struct {
-	ContextTrait
 	// event name
 	name string
 	// user data.
@@ -238,4 +239,14 @@ func (t *ContextTrait) Context() context.Context {
 // WithContext set context
 func (t *ContextTrait) WithContext(ctx context.Context) {
 	t.ctx = ctx
+}
+
+// ContextEvent event with context
+type contextEvent struct {
+	Event
+	ContextTrait
+}
+
+func newContextEvent(ctx context.Context, e Event) ContextAble {
+	return &contextEvent{Event: e, ContextTrait: ContextTrait{ctx: ctx}}
 }

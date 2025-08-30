@@ -1,7 +1,6 @@
 package event
 
 import (
-	"context"
 	"reflect"
 	"sync"
 )
@@ -19,8 +18,7 @@ type Manager struct {
 	wg  sync.WaitGroup
 	ch  chan Event
 	oc  sync.Once
-	err error           // latest error
-	ctx context.Context // default context
+	err error // latest error
 
 	// name of the manager
 	name string
@@ -48,7 +46,7 @@ func NewM(name string, fns ...OptionFn) *Manager {
 func NewManager(name string, fns ...OptionFn) *Manager {
 	em := &Manager{
 		name: name,
-		ctx:  context.Background(),
+		// ctx:  context.Background(),
 		// sample event
 		sample: &BasicEvent{},
 		// events storage

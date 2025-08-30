@@ -60,6 +60,9 @@ func Async(name string, params M) { std.Async(name, params) }
 // FireAsync fire event by channel
 func FireAsync(e Event) { std.FireAsync(e) }
 
+// FireAsyncCtx async fire event by go channel, and with context TODO need?
+// func FireAsyncCtx(ctx context.Context, e Event)
+
 // Trigger alias of Fire
 func Trigger(name string, params M) (error, Event) { return std.Fire(name, params) }
 

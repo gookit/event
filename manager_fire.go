@@ -30,7 +30,7 @@ func (em *Manager) Trigger(name string, params M) (error, Event) { return em.Fir
 // Fire trigger event by name. if not found listener, will return (nil, nil)
 func (em *Manager) Fire(name string, params M) (err error, e Event) {
 	// call listeners handle event
-	e, err = em.fireByNameCtx(em.ctx, name, params, false)
+	e, err = em.fireByName(name, params, false)
 	return
 }
 
@@ -65,7 +65,7 @@ func (em *Manager) FireC(name string, params M) {
 //   - will call listeners handle event.
 //   - if not found listener, will return (nil, nil)
 func (em *Manager) fireByName(name string, params M, useCh bool) (Event, error) {
-	return em.fireByNameCtx(em.ctx, name, params, useCh)
+	return em.fireByNameCtx(nil, name, params, useCh)
 }
 
 // fireByNameCtx fire event by name with context
@@ -86,6 +86,15 @@ func (em *Manager) fireByNameCtx(ctx context.Context, name string, params M, use
 		e = em.newBasicEvent(name, params)
 	}
 
+	// warp context
+	if ctx != nil {
+		if ec, ok := e.(ContextAble); ok {
+			ec.WithContext(ctx)
+		} else {
+			e = newContextEvent(ctx, e)
+		}
+	}
+
 	// fire by channel
 	if useCh {
 		em.FireAsync(e)
@@ -93,20 +102,24 @@ func (em *Manager) fireByNameCtx(ctx context.Context, name string, params M, use
 	}
 
 	// call listeners handle event
-	err = em.FireEventCtx(ctx, e)
+	err = em.fireEvent(e)
 	return
 }
 
-// FireEvent fire event by given Event instance
-func (em *Manager) FireEvent(e Event) error {
-	if ec, ok := e.(ContextAble); ok {
-		return em.FireEventCtx(ec.Context(), e)
-	}
-	return em.FireEventCtx(em.ctx, e)
-}
+// FireEvent fire event by given Event instance.
+func (em *Manager) FireEvent(e Event) error { return em.fireEvent(e) }
 
 // FireEventCtx fire event by given Event instance with context
 func (em *Manager) FireEventCtx(ctx context.Context, e Event) (err error) {
+	if ec, ok := e.(ContextAble); ok {
+		ec.WithContext(ctx)
+		return em.fireEvent(ec)
+	}
+	return em.fireEvent(newContextEvent(ctx, e))
+}
+
+// FireEventCtx fire event by given Event instance with context
+func (em *Manager) fireEvent(e Event) (err error) {
 	if em.EnableLock {
 		em.Lock()
 		defer em.Unlock()
@@ -115,9 +128,11 @@ func (em *Manager) FireEventCtx(ctx context.Context, e Event) (err error) {
 	// ensure aborted is false.
 	e.Abort(false)
 	name := e.Name()
-	// set context
+
+	// get context
+	var ctx context.Context
 	if ec, ok := e.(ContextAble); ok {
-		ec.WithContext(ctx)
+		ctx = ec.Context()
 	}
 
 	// fire group listeners by wildcard. eg "db.user.*"
@@ -243,6 +258,9 @@ func (em *Manager) firePathMode(ctx context.Context, name string, e Event) (err 
  * region Fire by channel
  *************************************************************/
 
+// FireAsyncCtx async fire event by go channel, and with context TODO need?
+// func (em *Manager) FireAsyncCtx(ctx context.Context, e Event)
+
 // FireAsync async fire event by go channel.
 //
 // Note: if you want to use this method, you should
@@ -303,7 +321,7 @@ func (em *Manager) FireBatch(es ...any) (ers []error) {
 	for _, e := range es {
 		if name, ok := e.(string); ok {
 			err, _ = em.Fire(name, nil)
-		} else if evt, ok := e.(Event); ok {
+		} else if evt, ok1 := e.(Event); ok1 {
 			err = em.FireEvent(evt)
 		} // ignore invalid param.
 
@@ -326,8 +344,8 @@ func (em *Manager) AwaitFire(e Event) (err error) {
 	ch := make(chan error)
 
 	go func(e Event) {
-		err := em.FireEvent(e)
-		ch <- err
+		err1 := em.FireEvent(e)
+		ch <- err1
 	}(e)
 
 	err = <-ch
