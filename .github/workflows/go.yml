@@ -22,7 +22,7 @@ jobs:
 
     steps:
     - name: Check out code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
     # https://github.com/actions/setup-go
     - name: Use Go ${{ matrix.go_version }}
       timeout-minutes: 3
