@@ -2,7 +2,7 @@ module github.com/gookit/event
 
 go 1.19
 
-require github.com/gookit/goutil v0.7.2
+require github.com/gookit/goutil v0.7.3
 
 require (
 	golang.org/x/sys v0.30.0 // indirect
