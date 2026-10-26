@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/gookit/event"
-	"github.com/gookit/goutil/testutil/assert"
+	"github.com/gookit/goutil/x/assert"
 )
 
 // Thread-safe buffer for testing
