@@ -157,6 +157,7 @@ func TestFireEvent(t *testing.T) {
 
 	// FireEventCtx
 	var ctxVal any
+	//lint:ignore SA1029 a ctx key of plain string is the usage from the issue
 	ctx := context.WithValue(context.Background(), "ctx1", "ctx-value1")
 	event.Listen("evt2", event.ListenerFunc(func(e event.Event) error {
 		ec, ok := e.(event.ContextAble)

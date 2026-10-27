@@ -199,6 +199,7 @@ func TestIssues_78(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a context with value (simulating trace ID)
+	//lint:ignore SA1029 a trace ID keyed by plain string is the usage from the issue
 	ctx = context.WithValue(ctx, "trace_id", "trace-12345")
 
 	// Create a context with timeout

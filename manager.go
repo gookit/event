@@ -26,8 +26,6 @@ type Manager struct {
 	// is a sample for new BasicEvent
 	sample *BasicEvent
 
-	// storage user custom Event instance. you can pre-define some Event instances.
-	events map[string]Event
 	// storage user pre-defined event factory func.
 	eventFc map[string]FactoryFunc
 
@@ -209,9 +207,7 @@ func (em *Manager) HasEvent(name string) bool {
 
 // RemoveEvent delete pre-define Event by name
 func (em *Manager) RemoveEvent(name string) {
-	if _, ok := em.eventFc[name]; ok {
-		delete(em.eventFc, name)
-	}
+	delete(em.eventFc, name)
 }
 
 // RemoveEvents remove all registered events

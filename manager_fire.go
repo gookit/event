@@ -65,6 +65,7 @@ func (em *Manager) FireC(name string, params M) {
 //   - will call listeners handle event.
 //   - if not found listener, will return (nil, nil)
 func (em *Manager) fireByName(name string, params M, useCh bool) (Event, error) {
+	//lint:ignore SA1012 nil context means "fire without context", it is checked in fireByNameCtx
 	return em.fireByNameCtx(nil, name, params, useCh)
 }
 

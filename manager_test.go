@@ -164,7 +164,7 @@ func TestManager_ListenGroupEvent(t *testing.T) {
 	}))
 
 	buf.Reset()
-	err, e = em.Fire("app.evt1", nil)
+	err, _ = em.Fire("app.evt1", nil)
 	assert.Error(t, err)
 	assert.Equal(t, "Hi > 1 app.evt1", buf.String())
 
