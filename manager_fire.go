@@ -318,8 +318,8 @@ func (em *Manager) makeConsumers() {
 //
 //	FireBatch("name1", "name2", &MyEvent{})
 func (em *Manager) FireBatch(es ...any) (ers []error) {
-	var err error
 	for _, e := range es {
+		var err error
 		if name, ok := e.(string); ok {
 			err, _ = em.Fire(name, nil)
 		} else if evt, ok1 := e.(Event); ok1 {
