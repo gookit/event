@@ -187,9 +187,9 @@ func TestAsync(t *testing.T) {
 
 	buf := new(safeBuffer)
 	event.On("test", event.ListenerFunc(func(e event.Event) error {
-		buf.WriteString("test:")
-		buf.WriteString(e.Get("key").(string))
-		buf.WriteString("|")
+		// write the whole entry at once: the async consumers run concurrently, so
+		// three separate writes let two events interleave (eg. "test:test:val1|val2|").
+		buf.WriteString("test:" + e.Get("key").(string) + "|")
 		return nil
 	}))
 

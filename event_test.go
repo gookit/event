@@ -22,6 +22,12 @@ func (sb *safeBuffer) Write(p []byte) (n int, err error) {
 	return sb.Buffer.Write(p)
 }
 
+// WriteString keeps the same guarantee as Write: the embedded bytes.Buffer
+// method would bypass the lock.
+func (sb *safeBuffer) WriteString(s string) (n int, err error) {
+	return sb.Write([]byte(s))
+}
+
 type testListener struct {
 	userData string
 }
