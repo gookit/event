@@ -320,6 +320,7 @@ func (em *Manager) Reset() {
 	em.ch = nil
 	em.oc = sync.Once{}
 	em.wg = sync.WaitGroup{}
+	em.err = nil
 
 	em.eventFc = make(map[string]FactoryFunc)
 	em.listeners = make(map[string]*ListenerQueue)
